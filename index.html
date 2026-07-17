@@ -2455,17 +2455,13 @@
       window.saveProjects = saveProjects;
 
       function fileToDataUrl(file) {
-        return new Promise(resolve => {
-          if (!file) return resolve(null);
-          var reader = new FileReader();
-          reader.onload = e => resolve(e.target.result);
-          reader.readAsDataURL(file);
-        });
-      }
-
       window.openProjectFileFromId = function (projId, field) {
         let proj = getProject(projId);
         if (!proj) return;
+        if (field === 'advanceReceiptUrl' && !proj.advanceReceiptUrl && proj.advReceiptUrl) {
+          proj.advanceReceiptUrl = proj.advReceiptUrl;
+          proj.hasAdvanceReceipt = true;
+        }
         let url = proj[field];
         if (!url) {
           if (field === 'techScopeUrl' && proj.hasTechScope) url = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
@@ -2474,7 +2470,21 @@
           else if (field === 'loeUrl' && proj.hasLoe) url = 'LOE_Template.xls';
         }
         if (!url) {
-          Swal.fire('No File Attached', 'There is no file uploaded or attached for this item yet.', 'info');
+          let title = field === 'techScopeUrl' ? 'Technical Scope' : (field === 'poUrl' ? 'Purchase Order' : (field === 'advanceReceiptUrl' ? 'Advance Receipt' : 'Attached Document'));
+          if (window.Swal) {
+            Swal.fire({
+              title: 'No File Attached',
+              text: `There is no ${title} uploaded yet. Would you like to upload/replace it right now?`,
+              icon: 'info',
+              showCancelButton: true,
+              confirmButtonText: '<i class="fa fa-upload me-1"></i> Upload Now',
+              cancelButtonText: 'Cancel'
+            }).then(res => {
+              if (res.isConfirmed && typeof window.triggerQuickDocUpload === 'function') {
+                window.triggerQuickDocUpload(projId, field);
+              }
+            });
+          }
           return;
         }
 
@@ -2488,8 +2498,12 @@
           }
           const blobUrl = URL.createObjectURL(blob);
           const extOrMime = blob.type || '';
-          const isExcel = field === 'loeUrl' || extOrMime.includes('excel') || extOrMime.includes('spreadsheet') || extOrMime.includes('sheet');
-          if (isExcel) {
+
+          if (extOrMime.includes('image/') || url.includes('image/')) {
+            $('#pdfViewerTitle').html(`<i class="fa fa-image text-primary me-2"></i> ${escapeHtml(title)} - Project ${escapeHtml(proj.projNo)} <a href="${blobUrl}" download="${proj.projNo}_${title}.png" class="btn btn-sm btn-outline-light ms-3"><i class="fa fa-download me-1"></i>Download Image</a>`);
+            $('#pdfViewerContainer').html(`<div style="text-align: center; padding: 20px; overflow: auto; height: 100%;"><img src="${blobUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain;" /></div>`);
+            $('#pdfViewerModal').modal('show');
+          } else if (extOrMime.includes('spreadsheet') || extOrMime.includes('excel') || url.includes('sheet')) {
             const a = document.createElement('a');
             a.href = blobUrl;
             a.download = proj.projNo + '_' + (field === 'loeUrl' ? 'LOE.xlsx' : 'Document.xlsx');
@@ -2510,6 +2524,59 @@
             $('#pdfViewerModal').modal('show');
           }
         }
+      };
+
+      window.triggerQuickDocUpload = function(projId, field) {
+        let proj = getProject(projId);
+        if (!proj) return;
+        
+        let input = document.getElementById('quickDocUploadInput');
+        if (!input) {
+          input = document.createElement('input');
+          input.type = 'file';
+          input.id = 'quickDocUploadInput';
+          input.className = 'd-none';
+          document.body.appendChild(input);
+        }
+        
+        input.accept = field === 'techScopeUrl' ? '.pdf' : '.pdf,image/*';
+        input.value = '';
+        input.onchange = async function(e) {
+          let file = e.target.files[0];
+          if (!file) return;
+          
+          let dataUrl = await fileToDataUrl(file);
+          if (field === 'techScopeUrl') {
+            proj.techScopeUrl = dataUrl;
+            proj.techScopeName = file.name;
+            proj.hasTechScope = true;
+          } else if (field === 'poUrl') {
+            proj.poUrl = dataUrl;
+            proj.poName = file.name;
+            proj.hasPO = true;
+          } else if (field === 'advanceReceiptUrl') {
+            proj.advanceReceiptUrl = dataUrl;
+            proj.advReceiptUrl = dataUrl;
+            proj.advReceiptName = file.name;
+            proj.hasAdvanceReceipt = true;
+          }
+          
+          if (typeof saveProjects === 'function') await saveProjects();
+          if (typeof showDetails === 'function') showDetails(proj.id);
+          if (typeof renderTable === 'function') renderTable();
+          
+          let title = field === 'techScopeUrl' ? 'Technical Scope' : (field === 'poUrl' ? 'Purchase Order' : 'Advance Receipt');
+          if (window.Swal) {
+            Swal.fire({
+              icon: 'success',
+              title: `${title} Uploaded`,
+              text: `Successfully uploaded/replaced ${file.name} for Project ${proj.projNo || ''}`,
+              timer: 1800,
+              showConfirmButton: false
+            });
+          }
+        };
+        input.click();
       };
 
       window.openExcelViewer = function (projId) {
@@ -2567,14 +2634,14 @@
           else if (p.stage === 8) actionBtn = `<button class="btn btn-sm btn-info fw-bold text-dark btn-dates" data-id="${p.id}"><i class="fa fa-calendar-check me-1"></i>Dates</button>`;
           else if (p.stage === 8.5) actionBtn = `<button class="btn btn-sm btn-warning fw-bold text-dark btn-vp-approve" data-id="${p.id}"><i class="fa fa-check me-1"></i>VP Appr</button>`;
           else if (p.stage === 9) actionBtn = `<button class="btn btn-sm btn-danger fw-bold text-white btn-dir-approve" data-id="${p.id}"><i class="fa fa-check-double me-1"></i>Dir Appr</button>`;
-          else if (p.stage === 10) actionBtn = `<button class="btn btn-sm btn-success fw-bold text-white" onclick="showDrawingsView()"><i class="fa fa-drafting-compass me-1"></i>Drawings</button>`;
+          else if (p.stage === 10) actionBtn = `<button class="btn btn-sm btn-success fw-bold text-white" data-id="${p.id}" onclick="showDrawingsView()"><i class="fa fa-drafting-compass me-1"></i>Drawings</button>`;
 
           // YDComplan pill button — additive, appears for stage >= 7 (LOE uploaded)
-          let ydcBtn = (p.stage >= 7) ? `<button class="btn btn-sm btn-outline-success fw-bold act-mini ms-1" onclick="event.stopPropagation();showYDComplanView(${p.id})" title="Open in YDComplan Execution"><i class="fa fa-cogs me-1"></i>YDComplan</button>` : '';
+          let ydcBtn = (p.stage >= 7) ? `<button class="btn btn-sm btn-outline-success fw-bold act-mini ms-1" data-id="${p.id}" onclick="event.stopPropagation();showYDComplanView(${p.id})" title="Open in YDComplan Execution"><i class="fa fa-cogs me-1"></i>YDComplan</button>` : '';
           let deleteBtn = `<button class="btn btn-sm btn-danger btn-delete-proj ms-1" data-id="${p.id}" title="Delete Project"><i class="fa fa-trash"></i></button>`;
 
           let rowHtml = `
-            <tr>
+            <tr data-id="${p.id}">
               <td><span class="badge rounded-pill ${p.status === 'New' ? 'badge-sla-green' : 'bg-secondary'}" style="min-width: 60px">${p.status}</span></td>
               <td><span class="fw-bold">${p.projNo}</span></td>
               <td><div>${p.client}</div><div class="small text-muted">${p.site}</div></td>
@@ -2618,7 +2685,7 @@
       $('#kickoffTable tbody').on('click', 'tr', function (e) {
         if ($(e.target).closest("button").length) return;
 
-        let id = $(this).find('button').data('id');
+        let id = $(this).data('id') || $(this).find('button[data-id]').data('id') || $(this).find('button').data('id');
         let proj = getProject(id);
         if (!proj) return;
 
@@ -2631,20 +2698,30 @@
         $('#detDesc').text(proj.desc || "Pending Allocation Details");
 
         $('#detFilesList').html('');
-        if (proj.techScopeUrl || proj.hasTechScope) {
-          $('#detFilesList').append(`<button onclick="openProjectFileFromId(${proj.id}, 'techScopeUrl')" class="btn btn-secondary btn-sm p-2"><i class="fa fa-file-pdf me-1"></i> Technical Scope</button>&nbsp;`);
-        }
-        if (proj.poUrl || proj.hasPO) {
-          $('#detFilesList').append(`<button onclick="openProjectFileFromId(${proj.id}, 'poUrl')" class="btn btn-secondary btn-sm p-2"><i class="fa fa-file-pdf me-1"></i> Purchase Order</button>&nbsp;`);
-        }
-        if (proj.advanceReceiptUrl || proj.hasAdvanceReceipt) {
-          $('#detFilesList').append(`<button onclick="openProjectFileFromId(${proj.id}, 'advanceReceiptUrl')" class="btn btn-secondary btn-sm p-2"><i class="fa fa-file-pdf me-1"></i> Advance Receipt</button>&nbsp;`);
-        }
+        let tsHas = !!(proj.techScopeUrl || proj.hasTechScope);
+        let poHas = !!(proj.poUrl || proj.hasPO);
+        let advHas = !!(proj.advanceReceiptUrl || proj.advReceiptUrl || proj.hasAdvanceReceipt);
+
+        $('#detFilesList').append(`
+          <div class="btn-group btn-group-sm me-2 mb-1">
+            <button onclick="openProjectFileFromId(${proj.id}, 'advanceReceiptUrl')" class="btn ${advHas ? 'btn-outline-primary' : 'btn-outline-secondary'}"><i class="fa fa-receipt me-1"></i>Advance Receipt ${advHas ? '' : '<span class="badge bg-secondary ms-1" style="font-size:10px;">Missing</span>'}</button>
+            <button onclick="triggerQuickDocUpload(${proj.id}, 'advanceReceiptUrl')" class="btn ${advHas ? 'btn-outline-primary' : 'btn-outline-secondary'}" title="Upload / Replace Advance Receipt"><i class="fa fa-sync-alt"></i></button>
+          </div>
+          <div class="btn-group btn-group-sm me-2 mb-1">
+            <button onclick="openProjectFileFromId(${proj.id}, 'techScopeUrl')" class="btn ${tsHas ? 'btn-outline-primary' : 'btn-outline-secondary'}"><i class="fa fa-file-pdf me-1"></i>Technical Scope ${tsHas ? '' : '<span class="badge bg-secondary ms-1" style="font-size:10px;">Missing</span>'}</button>
+            <button onclick="triggerQuickDocUpload(${proj.id}, 'techScopeUrl')" class="btn ${tsHas ? 'btn-outline-primary' : 'btn-outline-secondary'}" title="Upload / Replace Technical Scope"><i class="fa fa-sync-alt"></i></button>
+          </div>
+          <div class="btn-group btn-group-sm me-2 mb-1">
+            <button onclick="openProjectFileFromId(${proj.id}, 'poUrl')" class="btn ${poHas ? 'btn-outline-success' : 'btn-outline-secondary'}"><i class="fa fa-file-pdf me-1"></i>Purchase Order ${poHas ? '' : '<span class="badge bg-secondary ms-1" style="font-size:10px;">Missing</span>'}</button>
+            <button onclick="triggerQuickDocUpload(${proj.id}, 'poUrl')" class="btn ${poHas ? 'btn-outline-success' : 'btn-outline-secondary'}" title="Upload / Replace Purchase Order"><i class="fa fa-sync-alt"></i></button>
+          </div>
+        `);
+
         if (proj.loeUrl || proj.hasLoe) {
           if (proj.loeData && proj.loeData.length > 0) {
-            $('#detFilesList').append(`<button onclick="openExcelViewer(${proj.id})" class="btn btn-success btn-sm p-2 text-white border-0"><i class="fa fa-file-excel me-1"></i> View LOE Document</button>&nbsp;`);
+            $('#detFilesList').append(`<button onclick="openExcelViewer(${proj.id})" class="btn btn-success btn-sm p-2 mb-1 text-white border-0"><i class="fa fa-file-excel me-1"></i> View LOE Document</button>&nbsp;`);
           } else {
-            $('#detFilesList').append(`<button onclick="openProjectFileFromId(${proj.id}, 'loeUrl')" class="btn btn-secondary btn-sm p-2"><i class="fa fa-file-excel me-1"></i> Download LOE Document</button>&nbsp;`);
+            $('#detFilesList').append(`<button onclick="openProjectFileFromId(${proj.id}, 'loeUrl')" class="btn btn-secondary btn-sm p-2 mb-1"><i class="fa fa-file-excel me-1"></i> Download LOE Document</button>&nbsp;`);
           }
         }
 
@@ -3850,14 +3927,19 @@
       if (tsFile) {
         proj.techScopeUrl = await fileToDataUrl(tsFile);
         proj.techScopeName = tsFile.name;
+        proj.hasTechScope = true;
       }
       if (poFile) {
         proj.poUrl = await fileToDataUrl(poFile);
         proj.poName = poFile.name;
+        proj.hasPO = true;
       }
       if (advFile) {
-        proj.advReceiptUrl = await fileToDataUrl(advFile);
+        let advUrl = await fileToDataUrl(advFile);
+        proj.advReceiptUrl = advUrl;
+        proj.advanceReceiptUrl = advUrl;
         proj.advReceiptName = advFile.name;
+        proj.hasAdvanceReceipt = true;
       }
 
       let saveFn = window.saveProjects || null;
