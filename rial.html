@@ -1,0 +1,4475 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>YD Ascend Assembly Flow | YOGIJI DIGI</title>
+
+  <link href="yd-favicon.png" rel="icon" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+  <link rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" />
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <style>
+    :root {
+      --yd-primary: #2a5071;
+      --yd-red: #ad283f;
+      --yd-bg: #f5f7fa;
+    }
+
+    body {
+      background-color: var(--yd-bg);
+      background-image: url('ydbg.jpg');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    /* --- HEADER STYLING --- */
+    .btn-getstarted {
+      color: var(--yd-primary);
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .custom-nav-container {
+      display: flex;
+      gap: 15px;
+      margin: 0 auto;
+    }
+
+    .nav-btn-custom {
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 14px;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+
+    .nav-btn-custom:hover {
+      opacity: 0.8;
+    }
+
+    .right-icons-group {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .btn-user-blue {
+      background: var(--yd-primary);
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-user-blue::after {
+      display: none;
+    }
+
+    /* --- MAIN CONTENT --- */
+    .main {
+      padding: 40px 0;
+      min-height: calc(100vh - 200px);
+    }
+
+    .table-container {
+      max-width: 95%;
+      background: #fffffff0;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0px 0px 30px rgba(127, 137, 161, 0.25);
+      backdrop-filter: blur(5px);
+      margin: auto;
+    }
+
+    h2.page-title {
+      color: var(--yd-red);
+      font-weight: 700;
+      font-family: "Nunito", sans-serif;
+    }
+
+    /* --- BADGES & STATUS COLORS --- */
+    .badge-sla-green {
+      background-color: #198754;
+      color: white;
+    }
+
+    .badge-sla-amber {
+      background-color: #ffc107;
+      color: #000;
+    }
+
+    .badge-sla-red {
+      background-color: #dc3545;
+      color: white;
+      animation: pulse-red 2s infinite;
+    }
+
+    .status-badge {
+      font-size: 0.8rem;
+      padding: 6px 10px;
+    }
+
+    .bg-stage-0 {
+      background-color: #6c757d;
+      color: #fff;
+    }
+
+    .bg-stage-1 {
+      background-color: #ffc107;
+      color: #000;
+    }
+
+    .bg-stage-2 {
+      background-color: #0dcaf0;
+      color: #000;
+    }
+
+    .bg-stage-3 {
+      background-color: #0d6efd;
+      color: #fff;
+    }
+
+    .bg-stage-4 {
+      background-color: #6f42c1;
+      color: #fff;
+    }
+
+    .bg-stage-5 {
+      background-color: #198754;
+      color: #fff;
+    }
+
+    .bg-stage-blocked {
+      background-color: #dc3545;
+      color: #fff;
+    }
+
+    @keyframes pulse-red {
+      0% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.7;
+      }
+
+      100% {
+        opacity: 1;
+      }
+    }
+
+    /* --- DATATABLES OVERRIDES --- */
+    table.dataTable thead th {
+      background-color: var(--yd-primary);
+      color: white;
+      font-weight: 600;
+      font-size: 0.9rem;
+      vertical-align: middle;
+    }
+
+    table.dataTable tbody td {
+      vertical-align: middle;
+      font-size: 0.9rem;
+    }
+
+    table.dataTable tbody tr {
+      cursor: pointer;
+    }
+
+    table.dataTable tbody tr:hover {
+      background-color: #f1f4f9 !important;
+    }
+
+    /* --- MODALS --- */
+    .modal-header {
+      border-bottom: 2px solid var(--yd-primary);
+    }
+
+    .modal-title {
+      color: var(--yd-primary);
+      font-weight: 700;
+    }
+
+    .form-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #666;
+      margin-bottom: 2px;
+    }
+
+    .form-control,
+    .form-select {
+      font-size: 0.9rem;
+    }
+
+    /* --- EXCEL VIEWER STYLING --- */
+    #excelTableContainer table {
+      width: 100%;
+      border-collapse: collapse;
+      white-space: nowrap;
+    }
+
+    #excelTableContainer th,
+    #excelTableContainer td {
+      border: 1px solid #dee2e6;
+      padding: 6px 12px;
+      vertical-align: middle;
+    }
+
+    #excelTableContainer tr:first-child {
+      background-color: var(--yd-primary);
+      color: white;
+      font-weight: bold;
+    }
+
+    #excelTableContainer tr:nth-child(even) {
+      background-color: #f8f9fa;
+    }
+
+    /* --- PROGRESS STEPPER STYLING --- */
+    .stepper-wrapper {
+      display: flex;
+      justify-content: space-between;
+      margin: 10px 0 30px 0;
+      position: relative;
+    }
+
+    .stepper-item {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      z-index: 1;
+    }
+
+    .stepper-item::after {
+      position: absolute;
+      content: "";
+      border-bottom: 3px solid #e9ecef;
+      width: 100%;
+      top: 15px;
+      left: 50%;
+      z-index: -1;
+    }
+
+    .stepper-item:last-child::after {
+      display: none;
+    }
+
+    .stepper-item.completed::after {
+      border-bottom: 3px solid #198754;
+    }
+
+    .step-counter {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #e9ecef;
+      color: #6c757d;
+      font-weight: bold;
+      border: 3px solid #fff;
+      font-size: 13px;
+      transition: 0.3s;
+    }
+
+    .stepper-item.completed .step-counter {
+      background-color: #198754;
+      color: #fff;
+    }
+
+    .stepper-item.completed .step-name {
+      color: #198754;
+    }
+
+    .stepper-item.active .step-counter {
+      background-color: var(--yd-primary);
+      color: #fff;
+      box-shadow: 0 0 0 4px rgba(42, 80, 113, 0.2);
+    }
+
+    .stepper-item.active .step-name {
+      color: var(--yd-primary);
+    }
+
+    .step-name {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #6c757d;
+      margin-top: 8px;
+      text-align: center;
+      line-height: 1.2;
+    }
+
+    /* Compact density for the main kickoff table so it fits inside a laptop viewport */
+    .act-mini {
+      font-size: 0.72rem !important;
+      padding: 0.2rem 0.55rem !important;
+      line-height: 1.1 !important;
+      border-radius: 0.25rem;
+      white-space: nowrap;
+    }
+
+    .act-mini i {
+      font-size: 0.72rem;
+    }
+
+    .action-cell {
+      flex-wrap: nowrap !important;
+      white-space: nowrap;
+    }
+
+    .action-cell .btn,
+    .action-cell a.btn {
+      white-space: nowrap;
+    }
+
+    #kickoffTable {
+      font-size: 0.82rem;
+    }
+
+    #kickoffTable thead th {
+      padding: 0.4rem 0.45rem;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    #kickoffTable tbody td {
+      padding: 0.35rem 0.45rem;
+      vertical-align: middle;
+    }
+
+    #kickoffTable .badge,
+    #kickoffTable .btn {
+      font-size: 0.72rem;
+    }
+
+    #kickoffTable .badge {
+      padding: 0.25rem 0.45rem;
+    }
+
+    /* Footer styles */
+    .footer {
+      background: #fff;
+      padding: 40px 0 20px;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+      margin-top: auto;
+    }
+
+    .footer-links h4 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--yd-primary);
+      margin-bottom: 20px;
+    }
+
+    .footer-links ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .footer-links ul li {
+      padding: 5px 0;
+    }
+
+    .footer-links ul li a {
+      color: #6c757d;
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.3s;
+    }
+
+    .footer-links ul li a:hover {
+      color: var(--yd-red);
+    }
+
+    /* --- DRAWINGS DASHBOARD STYLES --- */
+    .project-drawing-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+      border-color: var(--yd-red);
+    }
+
+    .content-card {
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      padding: 24px;
+      border-radius: 15px;
+      box-shadow: 0px 0px 30px rgba(127, 137, 161, 0.25);
+    }
+
+    /* --- SUBTASKS TABLE STYLES --- */
+    #subtasksTable th {
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.5px;
+      color: #333;
+      font-weight: 700;
+      border-bottom: 2px solid #ccc;
+      background-color: #f8f9fa;
+      padding: 12px 8px;
+      vertical-align: middle;
+    }
+
+    #subtasksTable tbody tr:nth-of-type(odd) {
+      background-color: #f4f4f4;
+    }
+
+    #subtasksTable tbody tr:nth-of-type(even) {
+      background-color: #e9e9e9;
+    }
+
+    #subtasksTable td {
+      padding: 0 !important;
+      /* Let inputs fill cell */
+      vertical-align: middle;
+      border: 1px solid #ddd;
+    }
+
+    #subtasksTable input.form-control {
+      border: none;
+      background-color: transparent;
+      border-radius: 0;
+      box-shadow: none;
+      padding: 10px 8px;
+      color: #333;
+      font-weight: 500;
+      height: 100%;
+      width: 100%;
+    }
+
+    #subtasksTable input.form-control:focus {
+      background-color: #fff;
+      outline: 1px solid var(--yd-red);
+      box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
+    }
+
+    @media (min-width: 1200px) {
+      .modal-xxl {
+        max-width: 96vw;
+      }
+    }
+
+    .page-title-bar {
+      background: transparent;
+      padding: 0 0 16px 0;
+      border-bottom: 1px solid #e6eaf0;
+      margin-bottom: 20px;
+    }
+
+    .page-title-bar h2 {
+      color: var(--yd-red);
+      font-weight: 700;
+      margin: 0;
+      font-size: 1.35rem;
+    }
+
+    .page-title-bar .meta {
+      color: #4b5563;
+      font-size: 0.85rem;
+      margin-top: 2px;
+    }
+
+    .stats-strip {
+      background: transparent;
+      padding: 0 0 14px 0;
+      display: flex;
+      gap: 32px;
+      align-items: center;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      border-bottom: 1px dashed #e6eaf0;
+    }
+
+    .stats-strip .stat {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stats-strip .stat .label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #6b7280;
+    }
+
+    .stats-strip .stat .value {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #1f2937;
+    }
+
+    .table-wrap {
+      background: #fff;
+      border: 1px solid #e6eaf0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    table.assemblies thead {
+      background: var(--yd-primary);
+    }
+
+    table.assemblies th {
+      background: var(--yd-primary) !important;
+      color: #fff !important;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+
+    table.assemblies thead th {
+      border-color: rgba(255, 255, 255, 0.28) !important;
+    }
+
+    table.assemblies th.sortable {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    table.assemblies th.sortable::after {
+      content: "\f0dc";
+      font-family: "Font Awesome 6 Free";
+      font-weight: 900;
+      font-size: 0.65rem;
+      opacity: 0.65;
+      margin-left: 6px;
+    }
+
+    table.assemblies th.sortable.sort-asc::after {
+      content: "\f0de";
+      opacity: 1;
+    }
+
+    table.assemblies th.sortable.sort-desc::after {
+      content: "\f0dd";
+      opacity: 1;
+    }
+
+    .column-filter-row th {
+      background: #eef3f8 !important;
+      padding: 6px !important;
+    }
+
+    .column-filter-row .form-control {
+      min-width: 90px;
+      font-size: 0.74rem;
+      padding: 0.22rem 0.4rem;
+    }
+
+    .all-pending-only.d-none {
+      display: none !important;
+    }
+
+    table.assemblies td {
+      font-size: 0.85rem;
+      vertical-align: middle;
+    }
+
+    .drawing-list {
+      max-width: 240px;
+    }
+
+    .drawing-list a {
+      display: block;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .badge-released {
+      background: #16a34a;
+      color: #fff;
+    }
+
+    .upload-cell {
+      min-width: 220px;
+    }
+
+    tr.child-row {
+      background: #fafbfd !important;
+    }
+
+    table.assemblies tbody tr.sr-whole-row td {
+      font-weight: 600;
+    }
+
+    tr.section-divider td {
+      background: #2a5071 !important;
+      color: #fff !important;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      font-size: 0.85rem;
+      padding: 10px 14px;
+    }
+
+    tr.project-divider td {
+      background: #ad283f !important;
+    }
+
+    tr.child-row td:first-child {
+      padding-left: 2.2rem !important;
+    }
+
+    .toggle-chevron {
+      cursor: pointer;
+      display: inline-block;
+      width: 18px;
+      text-align: center;
+      margin-right: 6px;
+      transition: transform 0.15s ease;
+      color: var(--yd-primary);
+    }
+
+    .toggle-chevron.open {
+      transform: rotate(90deg);
+    }
+
+    .toggle-chevron.invisible {
+      visibility: hidden;
+    }
+
+    .filter-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .filter-row input[type="text"] {
+      max-width: 320px;
+    }
+
+    /* --- YDCOMPLAN EXECUTION LAYER --- */
+    .ydc-workflow-card {
+      cursor: pointer;
+      transition: transform 0.18s, box-shadow 0.18s;
+      border: 2px solid transparent;
+    }
+
+    .ydc-workflow-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12) !important;
+    }
+
+    .ydc-workflow-card.active-stage {
+      border-color: var(--yd-primary) !important;
+      box-shadow: 0 0 0 3px rgba(42, 80, 113, 0.18) !important;
+    }
+
+    .ydc-assembly-card,
+    .ydc-proj-card {
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    }
+
+    .ydc-assembly-card:hover,
+    .ydc-proj-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.1) !important;
+      border-color: var(--yd-red) !important;
+    }
+
+    .ydc-stage-badge-sap {
+      background: #6610f2;
+      color: #fff;
+    }
+
+    .ydc-stage-badge-fab {
+      background: #fd7e14;
+      color: #fff;
+    }
+
+    .ydc-stage-badge-mach {
+      background: #0dcaf0;
+      color: #000;
+    }
+
+    .ydc-stage-badge-arr {
+      background: #20c997;
+      color: #fff;
+    }
+
+    .ydc-stage-badge-asm {
+      background: #198754;
+      color: #fff;
+    }
+
+    .ydc-breadcrumb {
+      font-size: 0.8rem;
+      color: #6c757d;
+      margin-bottom: 10px;
+    }
+
+    .ydc-breadcrumb span.ydc-link {
+      cursor: pointer;
+      color: var(--yd-primary);
+      text-decoration: underline dotted;
+    }
+
+    .ydc-breadcrumb span.ydc-link:hover {
+      color: var(--yd-red);
+    }
+
+    .ydc-stat-card {
+      background: #fff;
+      border-radius: 10px;
+      border: 1px solid #e6eaf0;
+      padding: 12px 16px;
+    }
+
+    .ydc-stat-val {
+      font-size: 1.55rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .ydc-stat-lbl {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #6b7280;
+      margin-top: 3px;
+    }
+
+    table.ydc-table thead th {
+      background-color: var(--yd-primary);
+      color: #fff;
+      font-size: 0.76rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.35px;
+      vertical-align: middle;
+      white-space: nowrap;
+      padding: 0.38rem 0.48rem;
+    }
+
+    table.ydc-table tbody td {
+      vertical-align: middle;
+      font-size: 0.83rem;
+      padding: 0.28rem 0.48rem;
+    }
+
+    table.ydc-table input.form-control,
+    table.ydc-table select.form-select {
+      font-size: 0.8rem;
+      padding: 0.18rem 0.38rem;
+      height: auto;
+    }
+
+    .ydc-save-btn {
+      background: #e8f0fb;
+      color: var(--yd-primary);
+      border: 1px solid var(--yd-primary);
+      padding: 3px 9px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .ydc-save-btn:hover:not(:disabled) {
+      background: #cce0f5;
+    }
+
+    .ydc-save-btn:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+
+    .ydc-submit-btn {
+      background: var(--yd-primary);
+      color: #fff;
+      border: none;
+      padding: 3px 9px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .ydc-submit-btn:hover {
+      background: #1e3d57;
+      color: #fff;
+    }
+
+    .ydc-submitted-row td {
+      background: #f0fdf4 !important;
+    }
+
+    .ydc-progress-bar-wrap {
+      height: 5px;
+      background: #e9ecef;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .ydc-progress-bar-fill {
+      height: 100%;
+      background: var(--yd-primary);
+      border-radius: 3px;
+      transition: width 0.4s ease;
+    }
+
+    .ydc-stage-panel {
+      display: none;
+      background: #fff;
+      border: 1px solid #e6eaf0;
+      border-radius: 10px;
+      margin-top: 14px;
+      overflow: hidden;
+    }
+
+    .ydc-stage-panel.open {
+      display: block;
+      animation: ydcFadeDown 0.18s ease;
+    }
+
+    @keyframes ydcFadeDown {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .ydc-panel-header {
+      background: var(--yd-primary);
+      color: #fff;
+      padding: 10px 16px;
+      font-weight: 700;
+      font-size: 0.88rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+
+<body class="d-flex flex-column min-vh-100">
+  <header id="header" class="header sticky-top"
+    style="background-color: #fff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); padding: 10px 0;">
+    <nav class="navbar navbar-light">
+      <div class="container-fluid d-flex flex-wrap align-items-center">
+        <a class="navbar-brand" href="#" onclick="showDashboardView(); return false;">
+          <img src="YDLOGO.png" alt="Logo" style="height: 45px" />
+        </a>
+        <div class="custom-nav-container">
+          <a href="#" class="nav-btn-custom" style="background: #fde2e4; color: #9f1239">Report</a>
+          <a href="#" class="nav-btn-custom" style="background: #fff4cc; color: #92400e">Meeting</a>
+          <a href="#" class="nav-btn-custom" style="background: #e0f2fe; color: #0369a1" data-bs-toggle="modal"
+            data-bs-target="#attendanceModal">Attendance</a>
+        </div>
+        <div class="right-icons-group">
+          <a href="#" class="position-relative text-decoration-none">
+            <i class="fa-solid fa-bell fa-lg" style="color: #4167a7; font-size: 1.5rem"></i>
+            <span id="unreadCount"
+              class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+              style="font-size: 10px; padding: 3px 6px"></span>
+          </a>
+          <a href="#" id="approvalsBell" class="position-relative text-decoration-none d-none"
+            title="Edit-Excel approval requests" data-bs-toggle="modal" data-bs-target="#approvalsModal">
+            <i class="fa-solid fa-shield-halved fa-lg" style="color: #ad283f; font-size: 1.5rem"></i>
+            <span id="approvalsCount"
+              class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark d-none"
+              style="font-size: 10px; padding: 3px 6px"></span>
+          </a>
+          <div class="dropdown">
+            <button class="btn-user-blue dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown"
+              aria-expanded="false">
+              <i class="fa-solid fa-user"></i>
+              <span id="engineerNameDisplay" class="d-none d-sm-inline">User</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="userDropdown">
+              <li><a class="dropdown-item" href="#">Change Password</a></li>
+              <li>
+                <hr class="dropdown-divider" />
+              </li>
+              <li><a class="dropdown-item text-danger" href="#">Logout</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main class="main flex-grow-1">
+    <div id="dashboardView">
+      <div class="container table-container">
+        <div class="row align-items-center mb-4">
+          <div class="col-md-6">
+            <h2 class="page-title mb-0" style="background: transparent">Project Kick-Off Panel</h2>
+          </div>
+          <div class="col-md-6 text-end">
+            <div class="d-flex gap-2 justify-content-end align-items-center">
+              <button onclick="showDrawingsView()" class="btn btn-warning btn-sm text-light"
+                title="Show pending assemblies across all active projects">
+                <i class="fa fa-clock me-1"></i> Pending Drawings
+              </button>
+              <button onclick="showYDComplanView()" class="btn btn-success btn-sm"
+                title="YDComplan — Execution Control (available after LOE upload)">
+                <i class="fa fa-cogs me-1"></i> YDComplan
+              </button>
+              <button class="btn btn-primary btn-sm" id="btnNewProject" data-bs-toggle="modal"
+                data-bs-target="#createModal">
+                <i class="fa fa-plus me-1"></i> Initiate New Project
+              </button>
+              <a href="ascend.html" class="btn btn-danger btn-sm">Current Projects</a>
+              <a href="#" class="btn btn-primary btn-sm" title="Configure Users" id="btnUserConfig">
+                <i class="fa fa-gear"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table id="kickoffTable" class="table table-hover table-bordered align-middle mb-0" style="width: 100%">
+            <thead>
+              <tr>
+                <th class="text-nowrap" style="min-width: 130px">Status</th>
+                <th class="text-nowrap" style="min-width: 90px">Project No.</th>
+                <th style="min-width: 140px">Client &amp; Site</th>
+                <th style="min-width: 170px">Machine Description</th>
+                <th class="text-nowrap" style="min-width: 160px">Stage</th>
+                <th class="text-nowrap" style="min-width: 110px">Owner</th>
+                <th class="text-nowrap" style="min-width: 120px">Project Manager</th>
+                <th class="text-nowrap" style="min-width: 130px">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="badge rounded-pill badge-sla-amber" style="min-width: 60px">Pending</span></td>
+                <td><span class="fw-bold">2623</span></td>
+                <td>
+                  <div>VIKAS IRON &amp; STEEL CO.</div>
+                </td>
+                <td>
+                  <div>4Hi SKIN PASS MILL (WET TYPE) 1500MM@300MPM</div>
+                </td>
+                <td><span class="badge status-badge bg-stage-1">Awaiting Advance</span></td>
+                <td>
+                  <div class="fw-bold small">Finance</div>
+                </td>
+                <td>
+                  <div class="text-muted fst-italic">Pending</div>
+                </td>
+                <td>
+                  <div class="action-cell d-flex align-items-center flex-nowrap gap-2">
+                    <button class="btn btn-sm btn-warning fw-bold text-dark btn-finance-advance"><i
+                        class="fa fa-clock me-1"></i>Advance</button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><span class="badge rounded-pill badge-sla-green" style="min-width: 60px">On Track</span></td>
+                <td><span class="fw-bold">2631</span></td>
+                <td>
+                  <div>JSW</div>
+                </td>
+                <td>
+                  <div>4HI TWIN STAND TEMPER MILL 1250 MM @ 1000 MPM</div>
+                </td>
+                <td><span class="badge status-badge bg-stage-2">Design: Upload LOE</span></td>
+                <td>
+                  <div class="fw-bold small">Design Team</div>
+                </td>
+                <td>
+                  <div class="fw-bold">MAYANK BANDHA</div>
+                </td>
+                <td>
+                  <div class="action-cell d-flex align-items-center flex-nowrap gap-2">
+                    <button class="btn btn-sm btn-info fw-bold text-dark btn-loe"><i
+                        class="fa fa-file-alt me-1"></i>LOE</button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><span class="badge rounded-pill badge-sla-amber" style="min-width: 60px">Pending</span></td>
+                <td><span class="fw-bold">2624</span></td>
+                <td>
+                  <div>VIKAS IRON &amp; STEEL CO.</div>
+                </td>
+                <td>
+                  <div>6Hi COLD ROLLING MILL 1500MM@1200MPM</div>
+                </td>
+                <td><span class="badge status-badge bg-stage-1">Awaiting Advance</span></td>
+                <td>
+                  <div class="fw-bold small">Finance</div>
+                </td>
+                <td>
+                  <div class="text-muted fst-italic">Pending</div>
+                </td>
+                <td>
+                  <div class="action-cell d-flex align-items-center flex-nowrap gap-2">
+                    <button class="btn btn-sm btn-warning fw-bold text-dark"><i
+                        class="fa fa-clock me-1"></i>Advance</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="drawingsView" style="display: none;">
+      <div class="container-fluid px-4 pb-5">
+        <div class="content-card">
+
+          <!-- PROJECTS LIST VIEW -->
+          <div id="drawingsProjectsList">
+            <div class="page-title-bar d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+              <div>
+                <h2><i class="fa fa-folder-open me-2"></i> Drawing Projects</h2>
+                <div class="meta">Select a project to view and upload its assembly drawings</div>
+              </div>
+              <div class="d-flex gap-2 align-items-center">
+                <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="showDashboardView()">
+                  <i class="fa fa-arrow-left me-1"></i>Back to Kick-Off
+                </button>
+              </div>
+            </div>
+
+            <div class="row g-4" id="drawingsProjectsGrid">
+              <!-- Cards injected by JS -->
+            </div>
+          </div>
+
+          <!-- ASSEMBLIES DETAIL VIEW -->
+          <div id="drawingsAssembliesDetail" style="display: none;">
+            <div class="page-title-bar d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <div>
+                <h2><i class="fa fa-drafting-compass me-2"></i> Assembly Drawings</h2>
+                <div class="meta" id="projectMeta">Loading project</div>
+              </div>
+              <div class="d-flex gap-2 align-items-center">
+                <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="showDrawingsProjectsList()">
+                  <i class="fa fa-arrow-left me-1"></i>Back to Projects
+                </button>
+              </div>
+            </div>
+            <div class="stats-strip" id="statsStrip">
+              <div class="stat">
+                <span class="label">Total Assemblies</span>
+                <span class="value" id="statTotal">0</span>
+              </div>
+              <div class="stat">
+                <span class="label">Released</span>
+                <span class="value text-success" id="statReleased">0</span>
+              </div>
+              <div class="stat">
+                <span class="label">Pending</span>
+                <span class="value text-warning" id="statPending">0</span>
+              </div>
+            </div>
+
+            <div class="filter-row">
+              <input type="text" class="form-control form-control-sm" id="filterText"
+                placeholder="Filter assemblies by name, doc no, section" />
+              <div class="form-check form-check-inline mb-0">
+                <input class="form-check-input" type="checkbox" id="filterPendingOnly" />
+                <label class="form-check-label small" for="filterPendingOnly">
+                  Show only pending (not released)
+                </label>
+              </div>
+            </div>
+
+            <div id="tableWrap" class="table-wrap">
+              <div class="table-responsive">
+                <table class="table table-bordered table-hover assemblies mb-0" id="assembliesTable">
+                  <thead>
+                    <tr id="assembliesHeaderRow">
+                      <th class="sortable" data-sort-key="srNo" style="width: 60px">SR</th>
+                      <th class="sortable" data-sort-key="assemblyName">Assembly</th>
+                      <th class="sortable" data-sort-key="drawingDocNo">Doc No</th>
+                      <th class="sortable" data-sort-key="dispatchWeek">Dispatch Wk</th>
+                      <th class="sortable" data-sort-key="releaseWeek">Release Wk</th>
+                      <th style="width: 140px">Subtasks</th>
+                      <th class="sortable" data-sort-key="drawingCount">Drawings</th>
+                      <th class="upload-cell">Upload</th>
+                    </tr>
+                  </thead>
+                  <tbody id="assembliesBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- YDCOMPLAN EXECUTION MODULE — New views, additive only   -->
+    <!-- ======================================================= -->
+
+    <!-- YDComplan View 1: Projects List -->
+    <div id="ydComplanView" style="display:none;">
+      <div class="container-fluid px-4 pb-5">
+        <div class="content-card">
+          <div class="page-title-bar d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+            <div>
+              <h2><i class="fa fa-cogs me-2"></i> YDComplan <span class="text-muted fw-normal fs-6">| Execution
+                  Control</span></h2>
+              <div class="meta">Projects available after LOE upload — click a project card to begin execution planning
+              </div>
+            </div>
+            <div>
+              <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="showDashboardView()">
+                <i class="fa fa-arrow-left me-1"></i>Back to Kick-Off
+              </button>
+            </div>
+          </div>
+          <div class="row g-3" id="ydcProjectsGrid">
+            <!-- Injected by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- YDComplan View 2: Project Summary + Assembly Cards -->
+    <div id="ydcProjectSummary" style="display:none;">
+      <div class="container-fluid px-4 pb-5">
+        <div class="content-card">
+          <div class="ydc-breadcrumb mb-1">
+            <span class="ydc-link" onclick="showYDComplanView()"><i class="fa fa-cogs me-1"></i>YDComplan</span>
+            <i class="fa fa-chevron-right mx-2" style="font-size:0.65rem;color:#9ca3af;"></i>
+            <span id="ydcBreadProject" style="color:#1f2937;font-weight:600;">Project</span>
+          </div>
+          <div class="page-title-bar d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+            <div>
+              <h2 id="ydcProjTitle"><i class="fa fa-project-diagram me-2"></i>Project</h2>
+              <div class="meta" id="ydcProjMeta"></div>
+            </div>
+            <div>
+              <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="showYDComplanView()">
+                <i class="fa fa-arrow-left me-1"></i>Back to Projects
+              </button>
+            </div>
+          </div>
+          <!-- Summary Stats -->
+          <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3 col-lg-2">
+              <div class="ydc-stat-card text-center">
+                <div class="ydc-stat-val text-dark" id="ydcStatAssemblies">0</div>
+                <div class="ydc-stat-lbl">Assemblies</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+              <div class="ydc-stat-card text-center">
+                <div class="ydc-stat-val text-dark" id="ydcStatComponents">0</div>
+                <div class="ydc-stat-lbl">Components</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+              <div class="ydc-stat-card text-center">
+                <div class="ydc-stat-val text-success" id="ydcStatCompleted">0</div>
+                <div class="ydc-stat-lbl">Completed</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+              <div class="ydc-stat-card text-center">
+                <div class="ydc-stat-val text-warning" id="ydcStatPending">0</div>
+                <div class="ydc-stat-lbl">Pending</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+              <div class="ydc-stat-card text-center">
+                <div class="ydc-stat-val text-danger" id="ydcStatDelayed">—</div>
+                <div class="ydc-stat-lbl">Delayed</div>
+              </div>
+            </div>
+          </div>
+          <!-- Assembly Cards -->
+          <div class="row g-3" id="ydcAssemblyGrid">
+            <!-- Injected by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- YDComplan View 3: Assembly Detail + Workflow Stages -->
+    <div id="ydcAssemblyView" style="display:none;">
+      <div class="container-fluid px-4 pb-5">
+        <div class="content-card">
+          <div class="ydc-breadcrumb mb-1">
+            <span class="ydc-link" onclick="showYDComplanView()"><i class="fa fa-cogs me-1"></i>YDComplan</span>
+            <i class="fa fa-chevron-right mx-2" style="font-size:0.65rem;color:#9ca3af;"></i>
+            <span class="ydc-link" id="ydcAsmBreadProject" onclick="ydcBackToProjects()">Project</span>
+            <i class="fa fa-chevron-right mx-2" style="font-size:0.65rem;color:#9ca3af;"></i>
+            <span id="ydcAsmBreadAsm" style="color:#1f2937;font-weight:600;">Assembly</span>
+          </div>
+          <div class="page-title-bar d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+            <div>
+              <h2 id="ydcAsmTitle"><i class="fa fa-cubes me-2"></i>Assembly</h2>
+              <div class="meta" id="ydcAsmMeta"></div>
+            </div>
+            <div>
+              <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="ydcBackToProjects()">
+                <i class="fa fa-arrow-left me-1"></i>Back to Assemblies
+              </button>
+            </div>
+          </div>
+          <!-- Assembly Status Strip (per-stage) -->
+          <div class="row g-2 mb-4" id="ydcAsmStats"></div>
+          <!-- Workflow Stage Cards -->
+          <div class="row g-3 mb-2" id="ydcWorkflowCards"></div>
+          <!-- Stage Execution Panels (open one at a time) -->
+          <div id="ydcStagePanels"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- END YDCOMPLAN HTML                                       -->
+    <!-- ======================================================= -->
+
+  </main>
+
+  <div class="modal fade" id="createModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fa fa-file-contract me-2"></i>Initiate New Project (Sales)</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="createForm">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Client Name <span class="text-danger">*</span></label>
+                <select class="form-select" id="inpClient" required style="width: 100%">
+                  <option value="">-- Search or Type New Client --</option>
+                </select>
+              </div>
+              <div class="col-md-6" id="newClientLogoDiv" style="display: none">
+                <label class="form-label text-primary"><i class="fa fa-info-circle"></i> New Client Logo</label>
+                <input type="file" class="form-control" id="inpClientLogo" accept="image/*" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Site Name (Location) <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="inpSite" required placeholder="e.g. Mumbai" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Machine Type <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="inpMachine" required placeholder="6 HI CRM" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Sales Order No. <span
+                    class="text-muted small fst-italic">(optional)</span></label>
+                <input type="text" class="form-control" id="inpSO" placeholder="e.g. SO-2024-001" />
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-bold" id="lblTechScope">
+                  <i class="fa fa-file-pdf text-danger me-1"></i>Technical Scope (PDF)
+                  <span class="text-danger" id="techScopeRequiredMark">*</span>
+                  <span class="text-muted small fst-italic d-none" id="techScopeOptionalMark">(optional for
+                    spares)</span>
+                </label>
+                <input type="file" class="form-control" id="inpTechScope" accept=".pdf" required />
+              </div>
+              <div class="col-md-6" id="inpPOWrap">
+                <label class="form-label fw-bold">
+                  <i class="fa fa-file-pdf text-success me-1"></i>Purchase Order
+                  <span class="text-muted small fst-italic">(optional)</span>
+                </label>
+                <input type="file" class="form-control" id="inpPO" accept=".pdf,image/*" />
+              </div>
+              <div class="col-md-12">
+                <div class="form-check border p-2 rounded bg-light">
+                  <input class="form-check-input" type="checkbox" id="inpElectrical"
+                    style="transform: scale(1.2); margin-left: -1em; margin-top: 0.3em;" />
+                  <label class="form-check-label fw-bold text-dark ms-2" for="inpElectrical"><i
+                      class="fa fa-bolt text-warning me-1"></i> Is this an electrical only project?</label>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="btnInitiateWorkflow">Initiate Workflow</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="allocateProjModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fa fa-hashtag me-2"></i>Allocate Project</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="allocateProjForm">
+            <div class="mb-3">
+              <label class="form-label">Project Number <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="inpAllocateProjNo" required placeholder="e.g. 2635" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Project Description <span class="text-danger">*</span></label>
+              <textarea class="form-control" id="inpAllocateDesc" required rows="3"
+                placeholder="Enter description..."></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="btnSaveAllocation">Save Allocation</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="directorDecisionModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Director Decision</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body text-center">
+          <p>How would you like to proceed with this project?</p>
+          <div class="d-grid gap-3">
+            <button class="btn btn-warning" id="btnProceedWithAdvance">Proceed WITH Advance (Finance)</button>
+            <button class="btn btn-success" id="btnProceedWithoutAdvance">Proceed WITHOUT Advance (VP)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="financeAdvanceModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Enter Advance Received</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <label>Advance Amount</label>
+          <input type="number" id="inpAdvanceAmount" class="form-control mb-3" placeholder="e.g. 50000">
+          <label>Upload Advance Receipt</label>
+          <input type="file" id="inpAdvanceReceipt" class="form-control" accept=".pdf,.png,.jpg,.jpeg">
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" id="btnSaveAdvance">Save & Proceed</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="allocatePmModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Allocate Project Manager</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <label>Select Project Manager</label>
+          <select id="inpSelectPm" class="form-select">
+            <option>Mayank Bandha</option>
+            <option>Sarthak Handa</option>
+            <option>Shivendu Sharma</option>
+            <option>Aditya Sharma</option>
+            <option>Sujal Kumar</option>
+            <option>Aditya Saini</option>
+            <option>Saurabh Jangra</option>
+            <option>Tripurari Kumar</option>
+            <option>Gulshan</option>
+            <option>Om Dev</option>
+            <option>Kush Pahuja</option>
+            <option>Shashwat Dubey</option>
+            <option>Preet Nagar</option>
+            <option>Shashikant Tripathi</option>
+            <option>Kunal Dagar</option>
+            <option>Satwinder</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" id="btnSavePm">Allocate PM</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="kickoffModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Kickoff Meeting Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <label>Meeting Notes</label>
+          <textarea id="inpKickoffNotes" class="form-control" rows="3"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" id="btnSaveKickoff">Complete Kickoff</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="loeModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">List of Equipments (Design)</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>Please upload the file as per the template format. Click <a href="LOE_Template.xls"
+              class="fw-bold text-decoration-none" download>Download Template</a> to get a blank LOE workbook with the
+            expected columns, fill it in, then upload it here.</p>
+          <input type="file" id="inpLoeFile" class="form-control" accept=".xls,.xlsx">
+
+          <div id="loePreviewContainer" class="mt-3 border rounded"
+            style="display: none; max-height: 300px; overflow-y: auto;">
+            <table class="table table-sm table-bordered table-hover mb-0" id="loePreviewTable"
+              style="font-size: 0.85rem;">
+              <thead class="table-light sticky-top">
+                <tr>
+                  <th style="width: 80px">SR NO</th>
+                  <th>Assembly Name</th>
+                  <th>Drawing/Doc No</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" id="btnSaveLoe">Submit LOE</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="scheduleModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add Plan — Dispatch Week & Billing Value</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-0">
+          <div class="table-responsive" style="max-height: 60vh;">
+            <table class="table table-hover table-bordered mb-0" id="scheduleTable">
+              <thead class="table-light sticky-top" style="z-index: 1;">
+                <tr>
+                  <th style="width: 80px;" class="text-center">Auto ID</th>
+                  <th style="width: 100px;">SR. NO.</th>
+                  <th>Assembly Name</th>
+                  <th style="width: 160px;">Drawing/Doc No.</th>
+                  <th style="width: 180px;">Dispatch Week</th>
+                  <th style="width: 200px;">Billing Value INR</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Rows injected dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <div class="w-100 d-flex justify-content-between align-items-center">
+            <span class="text-muted fw-bold small" id="scheduleTotalRow">0 Items</span>
+            <button class="btn btn-primary" id="btnSaveSchedule">Submit Schedule</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="datesModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content shadow">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title"><i class="fa fa-calendar-alt text-primary me-2"></i> Drawing Release Dates (Design)
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-0">
+          <table class="table table-sm table-bordered table-hover mb-0" id="datesTable" style="font-size: 0.85rem;">
+            <thead class="table-light sticky-top">
+              <tr>
+                <th style="width: 60px" class="text-center">Auto ID</th>
+                <th style="width: 80px" class="text-center">SR. NO.</th>
+                <th>Assembly Name</th>
+                <th>Drawing/Doc No.</th>
+                <th style="width: 150px">Dispatch Week</th>
+                <th style="width: 150px">Billing Value INR</th>
+                <th style="width: 180px">Drawing Release Week</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="modal-footer bg-light">
+          <div class="w-100 d-flex justify-content-between align-items-center">
+            <span class="text-muted fw-bold small" id="datesTotalRow">0 Items</span>
+            <button class="btn btn-primary" id="btnSaveDates">Submit Dates</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="excelModal" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fa fa-file-excel text-success me-2"></i> Planning Document</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body bg-light p-3">
+          <div id="excelTableContainer" class="table-responsive bg-white border rounded shadow-sm p-2"
+            style="font-size: 13px"></div>
+        </div>
+        <div class="modal-footer d-flex justify-content-between w-100">
+          <div id="excelEditUploadSection" class="d-none align-items-center gap-2">
+            <span class="small fw-bold text-muted"><i class="fa fa-magic"></i> Autofill Dates from Excel:</span>
+            <input type="file" class="form-control form-control-sm" id="manualDesignDatesFile"
+              accept=".xlsx, .xls, .csv" style="width: 220px" />
+          </div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-warning btn-sm d-none" id="btnEditExcel"><i
+                class="fa fa-edit me-1"></i> Edit Data</button>
+            <button type="button" class="btn btn-success btn-sm d-none" id="btnSaveEditedExcel"><i
+                class="fa fa-save me-1"></i> Submit Changes</button>
+            <button type="button" class="btn btn-info btn-sm text-white d-none" id="btnDownloadPlanning"><i
+                class="fa fa-download me-1"></i> Download File</button>
+            <button type="button" class="btn btn-success btn-sm d-none" id="btnApprovePlanning"><i
+                class="fa fa-check me-1"></i> Approve</button>
+            <button type="button" class="btn btn-danger btn-sm d-none" id="btnRejectPlanning"><i
+                class="fa fa-times me-1"></i> Reject</button>
+            <button type="button" class="btn btn-primary btn-sm d-none" id="btnSaveExcelDates"><i
+                class="fa fa-save me-1"></i> Save & Submit Dates</button>
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="attendanceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h6 class="modal-title">Mark Attendance</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body text-center">
+          <div id="liveClock" class="fs-1 fw-bold mb-3" style="color: #ad283f">00:00:00</div>
+          <div class="mb-3 text-start">
+            <label class="form-label">Select Project</label>
+            <select id="projectSelect" class="form-select">
+              <option value="">-- Choose Project --</option>
+            </select>
+          </div>
+          <div id="attendanceStatus" class="mb-3 text-muted">
+            <p id="punchInTimeDisplay">Punch In: --:--</p>
+            <p id="punchOutTimeDisplay">Punch Out: --:--</p>
+          </div>
+          <div class="d-grid gap-2">
+            <button id="attendanceBtn" class="btn btn-success btn-lg">Punch In</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="detailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Project Details & History</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div id="projectStepper" class="stepper-wrapper">
+            <div class="stepper-item completed">
+              <div class="step-counter"><i class="fa fa-check"></i></div>
+              <div class="step-name">Sales</div>
+            </div>
+            <div class="stepper-item completed">
+              <div class="step-counter"><i class="fa fa-check"></i></div>
+              <div class="step-name">Design<br />(Proj No)</div>
+            </div>
+            <div class="stepper-item completed">
+              <div class="step-counter"><i class="fa fa-check"></i></div>
+              <div class="step-name">Director<br />(Advance)</div>
+            </div>
+            <div class="stepper-item completed">
+              <div class="step-counter"><i class="fa fa-check"></i></div>
+              <div class="step-name">Finance<br />(Advance)</div>
+            </div>
+            <div class="stepper-item active">
+              <div class="step-counter"><i class="fa fa-spinner fa-spin"></i></div>
+              <div class="step-name">COO/VP<br />(PM)</div>
+            </div>
+            <div class="stepper-item">
+              <div class="step-counter"><i class="fa fa-circle-notch opacity-25"></i></div>
+              <div class="step-name">PM<br />(Kickoff)</div>
+            </div>
+            <div class="stepper-item">
+              <div class="step-counter"><i class="fa fa-circle-notch opacity-25"></i></div>
+              <div class="step-name">Design<br />(LOE)</div>
+            </div>
+            <div class="stepper-item">
+              <div class="step-counter"><i class="fa fa-circle-notch opacity-25"></i></div>
+              <div class="step-name">Planning<br />(Schedule)</div>
+            </div>
+            <div class="stepper-item">
+              <div class="step-counter"><i class="fa fa-circle-notch opacity-25"></i></div>
+              <div class="step-name">Design<br />(Dates)</div>
+            </div>
+            <div class="stepper-item">
+              <div class="step-counter"><i class="fa fa-circle-notch opacity-25"></i></div>
+              <div class="step-name">VP Appr</div>
+            </div>
+            <div class="stepper-item">
+              <div class="step-counter"><i class="fa fa-circle-notch opacity-25"></i></div>
+              <div class="step-name">Dir Appr</div>
+            </div>
+          </div>
+          <div class="mb-3 p-3 bg-light rounded border">
+            <div class="row" style="font-size: 13px">
+              <div class="col-md-6 mb-2"><strong>Project No:</strong> <span id="detCode"
+                  class="text-primary fw-bold"></span></div>
+              <div class="col-md-6 mb-2"><strong>Status:</strong> <span id="detStatus"></span></div>
+              <div class="col-md-6 mb-2"><strong>Initiated On:</strong> <span id="detInit"></span></div>
+              <div class="col-md-6 mb-2"><strong>SO No:</strong> <span id="detSO"></span></div>
+              <div class="col-md-6 mb-2"><strong>Machine Type:</strong> <span id="detMT"></span></div>
+              <div class="col-md-6 mb-2"><strong>Site Name:</strong> <span id="detSite"></span></div>
+
+              <div class="col-12 mb-2"><strong>Machine Description:</strong> <span id="detDesc"></span></div>
+              <div class="col-12 mt-2 pt-2 border-top" id="detFilesContainer">
+                <strong>Attached Documents:</strong>
+                <div class="mt-2 d-flex flex-wrap gap-2" id="detFilesList"></div>
+                <div class="mt-3">
+                  <button type="button" class="btn btn-sm btn-outline-primary" onclick="openReplaceDocsModal()"><i class="fa fa-upload me-1"></i>Replace / Upload Documents (Tech Scope, PO, Advance Receipt)</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Replace / Upload Documents Modal -->
+  <div class="modal fade" id="replaceDocsModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+      <div class="modal-content shadow">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title"><i class="fa fa-folder-open me-2"></i>Replace / Upload Documents</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="replaceDocsForm">
+            <div class="mb-3">
+              <label class="form-label fw-bold"><i class="fa fa-file-pdf text-danger me-1"></i>Replace Technical Scope (PDF)</label>
+              <input type="file" class="form-control form-control-sm" id="repTechScope" accept=".pdf" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold"><i class="fa fa-file-pdf text-success me-1"></i>Replace Purchase Order</label>
+              <input type="file" class="form-control form-control-sm" id="repPO" accept=".pdf,image/*" />
+            </div>
+            <div class="mb-3 pt-2 border-top">
+              <label class="form-label fw-bold text-primary"><i class="fa fa-file-invoice-dollar me-1"></i>Upload / Replace Advance Receipt</label>
+              <input type="file" class="form-control form-control-sm" id="repAdvReceipt" accept=".pdf,image/*" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Advance Amount</label>
+              <input type="text" class="form-control form-control-sm" id="repAdvAmount" placeholder="e.g. ₹5,00,000 / $10,000" />
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary btn-sm" onclick="saveReplacedDocs()"><i class="fa fa-floppy-disk me-1"></i>Save Documents</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Excel Viewer Modal -->
+  <div class="modal fade" id="excelViewerModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content shadow">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title"><i class="fa fa-file-excel text-success me-2"></i> LOE Document Viewer</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-0">
+          <table class="table table-sm table-bordered table-hover mb-0" id="excelViewerTable"
+            style="font-size: 0.9rem;">
+            <thead class="table-light sticky-top">
+              <tr>
+                <th style="width: 60px" class="text-center">Auto ID</th>
+                <th style="width: 80px" class="text-center">SR NO</th>
+                <th>Assembly Name</th>
+                <th>Drawing/Doc No</th>
+                <th style="width: 150px">Dispatch Week</th>
+                <th style="width: 200px">Billing Value INR</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="modal-footer bg-light">
+          <button class="btn btn-outline-secondary btn-sm" id="btnDownloadLoeOrigin"><i class="fa fa-download me-1"></i>
+            Download Original .xls</button>
+          <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer id="footer" class="footer position-relative light-background">
+    <div class="container-fluid footer-top">
+      <div class="row gy-4" style="padding-left: 50px">
+        <div class="col-lg-3 col-md-3 footer-about">
+          <a href="ourClients.html" class="logo d-flex align-items-center"><img height="100" src="yd-footer.png" /></a>
+        </div>
+        <div class="col-lg-3 col-md-3 footer-links">
+          <h4>Products</h4>
+          <ul>
+            <li><a target="_blank" href="#">Cold Rolling Mills</a></li>
+            <li><a target="_blank" href="#">GI/GL Lines</a></li>
+            <li><a target="_blank" href="#">Color Coating lines</a></li>
+            <li><a target="_blank" href="#">Pickling Lines & Acid Regeneration</a></li>
+          </ul>
+        </div>
+        <div class="col-lg-3 col-md-3 footer-links footer-right" style="padding-left: 90px">
+          <h4>Information</h4>
+          <ul>
+            <li><a target="_blank" href="#">Company Profile</a></li>
+            <li><a target="_blank" href="#">Infrastructure</a></li>
+            <li><a target="_blank" href="#">Products</a></li>
+            <li><a target="_blank" href="#">Contact Us</a></li>
+          </ul>
+        </div>
+        <div class="col-lg-3 col-md-3 footer-links footer-right" style="padding-left: 70px">
+          <h4>Get In Touch</h4>
+          <ul>
+            <li><a href="#">147-148, Sector - 58</a></li>
+            <li><a href="#">Faridabad 121004, Haryana</a></li>
+            <li><a href="tel:-+91 129 429 5200">+91 129 429 5200</a></li>
+            <li><a href="mailto:sales@ydgroup.com">sales@ydgroup.com</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="container copyright text-center mt-3 border-top pt-3">
+      <p>© <span>Copyright</span> <strong class="px-1 sitename">YOGIJI DIGI</strong></p>
+    </div>
+  </footer>
+
+  <div class="modal fade" id="drawingsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title text-primary fw-bold" id="drawingsModalTitle">Drawings</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body bg-light p-0">
+          <div id="drawingsModalBody">
+            <div class="text-center text-muted py-3">
+              <i class="fa fa-spinner fa-spin me-1"></i>Loading...
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Component Subtasks Modal -->
+  <div class="modal fade" id="subtasksModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xxl modal-dialog-scrollable">
+      <div class="modal-content shadow">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title"><i class="fa fa-list text-primary me-2"></i> Components (Subtasks)</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-0">
+          <div class="p-3 border-bottom bg-white d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="mb-1 fw-bold" id="subTitleAssembly">Assembly Name</h6>
+              <span class="text-muted small" id="subTitleProject">Project No</span>
+            </div>
+            <div>
+              <button class="btn btn-success btn-sm" id="btnAddSubtaskRow"><i class="fa fa-plus me-1"></i> Add
+                Row</button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm table-bordered table-hover mb-0 text-nowrap" id="subtasksTable"
+              style="font-size: 0.85rem;">
+              <thead class="table-light sticky-top">
+                <tr>
+                  <th style="width: 50px" class="text-center">#</th>
+                  <th style="min-width: 180px">Component</th>
+                  <th style="min-width: 160px">Drawing Number</th>
+                  <th style="width: 140px">Drawing Required</th>
+                  <th style="width: 150px">Bought Out / Inhouse</th>
+                  <th style="width: 80px">Quantity</th>
+                  <th style="min-width: 140px">Material</th>
+                  <th style="width: 90px">Weight</th>
+                  <th style="width: 50px" class="text-center"><i class="fa fa-trash"></i></th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary btn-sm" id="btnSaveSubtasks">Save Components</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PDF Viewer Modal -->
+  <div class="modal fade" id="pdfViewerModal" tabindex="-1" style="z-index: 1060;">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+      <div class="modal-content shadow-lg">
+        <div class="modal-header bg-dark text-white border-bottom-0">
+          <h5 class="modal-title" id="pdfViewerTitle"><i class="fa fa-file-pdf text-danger me-2"></i> Document Viewer
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-0" id="pdfViewerContainer" style="height: 80vh;">
+          <iframe id="pdfViewerIframe" src="" style="width: 100%; height: 100%; border: none;"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <script>
+    $(document).ready(function () {
+
+      const CONSTANTS = {
+        STAGE_MAP: {
+          0: "SALES_INITIATED",
+          1: "AWAITING_DESIGN_PROJECT_NO",
+          1.5: "AWAITING_ELECTRICAL_DESIGN",
+          2: "PENDING_DIRECTOR_DECISION",
+          3: "AWAITING_ADVANCE",
+          4: "PENDING_PM_ASSIGNMENT",
+          5: "PENDING_KICKOFF",
+          6: "PENDING_DESIGN_LOE",
+          7: "PENDING_PLANNING_COLUMNS",
+          8: "PENDING_DESIGN_RELEASE_WEEK",
+          8.5: "PENDING_VP_APPROVAL",
+          9: "PENDING_DIRECTOR_APPROVAL",
+          10: "ACTIVE",
+          99: "BLOCKED_NO_APPROVAL",
+        },
+        STATUS_CONFIG: {
+          AWAITING_DESIGN_PROJECT_NO: { cls: "bg-stage-0", label: "Design: Assign Project" },
+          AWAITING_ELECTRICAL_DESIGN: { cls: "bg-warning", label: "Electrical Design Pending" },
+          PENDING_DIRECTOR_DECISION: { cls: "bg-stage-1", label: "Director Decision" },
+          AWAITING_ADVANCE: { cls: "bg-stage-2", label: "Awaiting Advance" },
+          PENDING_PM_ASSIGNMENT: { cls: "bg-stage-3", label: "Pending PM Assign" },
+          PENDING_KICKOFF: { cls: "bg-stage-4", label: "Pending Kick-Off" },
+          PENDING_DESIGN_LOE: { cls: "bg-info text-dark", label: "Design: Upload LOE" },
+          PENDING_PLANNING_COLUMNS: { cls: "bg-warning text-dark", label: "Dispatch Schedule" },
+          PENDING_DESIGN_RELEASE_WEEK: { cls: "bg-primary", label: "Design: Fill Plan Week" },
+          PENDING_VP_APPROVAL: { cls: "bg-warning text-dark", label: "VP Approval" },
+          PENDING_DIRECTOR_APPROVAL: { cls: "bg-danger", label: "Director Approval Pending" },
+          ACTIVE: { cls: "bg-stage-5", label: "Active: Drawings Upload" },
+          BLOCKED_NO_APPROVAL: { cls: "bg-stage-blocked", label: "BLOCKED - ESCALATED" },
+        }
+      };
+
+      // Our JSON database
+      let projectsData = [];
+      window.projectsData = projectsData;
+
+      // --- INDEXEDDB STORAGE SYSTEM (WITH LOCALSTORAGE FALLBACK) ---
+      const IDBStorage = {
+        dbName: 'YDKickoffDB_v1',
+        storeName: 'projects',
+        init: function () {
+          return new Promise((resolve, reject) => {
+            const request = indexedDB.open(this.dbName, 1);
+            request.onupgradeneeded = (e) => {
+              const db = e.target.result;
+              if (!db.objectStoreNames.contains(this.storeName)) {
+                db.createObjectStore(this.storeName);
+              }
+            };
+            request.onsuccess = (e) => resolve(e.target.result);
+            request.onerror = (e) => reject(e.target.error);
+          });
+        },
+        get: async function (key) {
+          try {
+            const db = await this.init();
+            return new Promise((resolve, reject) => {
+              const tx = db.transaction(this.storeName, 'readonly');
+              const store = tx.objectStore(this.storeName);
+              const req = store.get(key);
+              req.onsuccess = () => resolve(req.result);
+              req.onerror = () => reject(req.error);
+            });
+          } catch (e) {
+            console.error("IDB get error:", e);
+            return null;
+          }
+        },
+        set: async function (key, value) {
+          try {
+            const db = await this.init();
+            return new Promise((resolve, reject) => {
+              const tx = db.transaction(this.storeName, 'readwrite');
+              const store = tx.objectStore(this.storeName);
+              const req = store.put(value, key);
+              req.onsuccess = () => resolve(true);
+              req.onerror = () => reject(req.error);
+            });
+          } catch (e) {
+            console.error("IDB set error:", e);
+            throw e;
+          }
+        },
+        remove: async function (key) {
+          try {
+            const db = await this.init();
+            return new Promise((resolve, reject) => {
+              const tx = db.transaction(this.storeName, 'readwrite');
+              const store = tx.objectStore(this.storeName);
+              const req = store.delete(key);
+              req.onsuccess = () => resolve(true);
+              req.onerror = () => reject(req.error);
+            });
+          } catch (e) {
+            console.error("IDB remove error:", e);
+          }
+        }
+      };
+
+      // Helper to safely convert base64 Data URLs to Blob for local viewing
+      function dataUrlToBlob(dataUrl) {
+        try {
+          if (!dataUrl || !dataUrl.includes(',')) return null;
+          let arr = dataUrl.split(',');
+          let mimeMatch = arr[0].match(/:(.*?);/);
+          let mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+          let bstr = atob(arr[1]);
+          let n = bstr.length;
+          let u8arr = new Uint8Array(n);
+          while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+          }
+          return new Blob([u8arr], { type: mime });
+        } catch (e) {
+          console.error("dataUrlToBlob error:", e);
+          return null;
+        }
+      }
+      window.dataUrlToBlob = dataUrlToBlob;
+      window.IDBStorage = IDBStorage;
+
+      // Mock data if none exists
+      const defaultMockData = [
+        {
+          "id": 1000,
+          "status": "New",
+          "projNo": "2623",
+          "client": "VIKAS IRON & STEEL CO.",
+          "site": "FARIDABAD",
+          "machine": "4Hi SKIN PASS MILL (WET TYPE) 1500MM@300MPM 1500 MM @ 300 MPM",
+          "stage": 3,
+          "owner": "Finance",
+          "pm": "Pending",
+          "desc": "4Hi SKIN PASS MILL (WET TYPE) 1500MM@300MPM 1500 MM @ 300 MPM",
+          "hasTechScope": false,
+          "hasPO": false,
+          "timeline": {
+            "1": "01/06/2026"
+          }
+        },
+        {
+          "id": 1001,
+          "status": "New",
+          "projNo": "2631",
+          "client": "JSW",
+          "site": "RAJPURA",
+          "machine": "4HI TWIN STAND TEMPER MILL 1250 MM @ 1000 MPM",
+          "stage": 6,
+          "owner": "Design Team",
+          "pm": "MAYANK BANDHA",
+          "desc": "4HI TWIN STAND TEMPER MILL 1250 MM @ 1000 MPM",
+          "hasTechScope": false,
+          "hasPO": false,
+          "timeline": {
+            "1": "01/06/2026"
+          }
+        },
+        {
+          "id": 1002,
+          "status": "New",
+          "projNo": "2624",
+          "client": "VIKAS IRON & STEEL CO.",
+          "site": "FARIDABAD",
+          "machine": "6Hi COLD ROLLING MILL 1500MM@1200MPM",
+          "stage": 3,
+          "owner": "Finance",
+          "pm": "Pending",
+          "desc": "6Hi COLD ROLLING MILL 1500MM@1200MPM",
+          "hasTechScope": false,
+          "hasPO": false,
+          "timeline": {
+            "1": "01/06/2026"
+          }
+        },
+        {
+          "id": 1003,
+          "status": "New",
+          "projNo": "2621",
+          "client": "PROMPT",
+          "site": "DUDHOLA PALWAL",
+          "machine": "6HI CRM 1500MM WIDE @ 1400MPM 1500 MM @ 1400 MPM",
+          "stage": 3,
+          "owner": "Finance",
+          "pm": "Pending",
+          "desc": "6HI CRM 1500MM WIDE @ 1400MPM 1500 MM @ 1400 MPM",
+          "hasTechScope": false,
+          "hasPO": false,
+          "timeline": {
+            "1": "01/06/2026"
+          }
+        },
+        {
+          "id": 1004,
+          "status": "New",
+          "projNo": "2630",
+          "client": "JSW",
+          "site": "RAJPURA",
+          "machine": "6HI REVERSING CRM 1250MM@1400MPM",
+          "stage": 6,
+          "owner": "Design Team",
+          "pm": "MAYANK BANDHA",
+          "desc": "6HI REVERSING CRM 1250MM@1400MPM",
+          "hasTechScope": false,
+          "hasPO": false,
+          "timeline": {
+            "1": "01/06/2026"
+          }
+        },
+        {
+          "id": 1005,
+          "status": "New",
+          "projNo": "2611",
+          "client": "APOLLO",
+          "site": "Sikandrabad",
+          "machine": "AL-Zn LINE 750 MM @ 120 MPM",
+          "stage": 7,
+          "owner": "Planning & Forecasting",
+          "pm": "Saurabh Jangra",
+          "desc": "AL-Zn LINE 750 MM @ 120 MPM",
+          "hasTechScope": false,
+          "hasPO": false,
+          "timeline": {
+            "1": "01/06/2026"
+          }
+        },
+        {
+          "id": 1006,
+          "status": "New",
+          "projNo": "2617",
+          "client": "SG MART LTD",
+          "site": "RAIPUR",
+          "machine": "AL-ZN+ZAM, DUAL POT, 750MM@120MPM 750 MM @ 120 MPM",
+          "stage": 6,
+          "owner": "Design Team",
+          "pm": "Saurabh Jangra",
+          "desc": "AL-ZN+ZAM, DUAL POT, 750MM@120MPM 750 MM @ 120 MPM",
+          "hasTechScope": false,
+          "hasPO": false,
+          "timeline": {
+            "1": "01/06/2026"
+          }
+        },
+        {
+          "id": 1007,
+          "status": "New",
+          "projNo": "2627",
+          "client": "ALSHAKER",
+          "site": "EGYPT",
+          "machine": "CCL LINE 1250 MM @ 60 MPM",
+          "stage": 2,
+          "owner": "Directors",
+          "pm": "Pending",
+          "desc": "CCL LINE 1250 MM @ 60 MPM",
+          "hasTechScope": false,
+          "hasPO": false,
+          "timeline": {
+            "1": "01/06/2026"
+          }
+        },
+        {
+          "id": 1008,
+          "status": "New",
+          "projNo": "2626",
+          "client": "JSW",
+          "site": "RAJPURA",
+          "machine": "COIL PREPARATION LINE 1250 MM @ 700 MPM",
+          "stage": 6,
+          "owner": "Design Team",
+          "pm": "Sujal Kumar",
+          "desc": "COIL PREPARATION LINE 1250 MM @ 700 MPM",
+          "hasTechScope": false,
+          "hasPO": false,
+          "timeline": {
+            "1": "01/06/2026"
+          }
+        },
+        {
+          "id": 1009,
+          "status": "New",
+          "projNo": "2629",
+          "client": "JSW",
+          "site": "TARAPUR",
+          "machine": "COIL PREPARATION LINE 1250 MM @ 700 MPM 1250 MM @ 700 MPM",
+          "stage": 6,
+          "owner": "Design Team",
+          "pm": "Aditya Sharma",
+          "desc": "COIL PREPARATION LINE 1250 MM @ 700 MPM 1250 MM @ 700 MPM",
+          "hasTechScope": false,
+          "hasPO": false,
+          "timeline": {
+            "1": "01/06/2026"
+          }
+        },
+        {
+          "id": 1010,
+          "status": "New",
+          "projNo": "2618",
+          "client": "SG MART LTD",
+          "site": "RAIPUR",
+          "machine": "Continuous Zn Line with Non-Oxidation Furnace-1500MM@120MPM null MM @ 120 MPM",
+          "stage": 6,
+          "owner": "Design Team",
+          "pm": "Saurabh Jangra",
+          "desc": "Continuous Zn Line with Non-Oxidation Furnace-1500MM@120MPM null MM @ 120 MPM",
+          "hasTechScope": false,
+          "hasPO": false,
+          "timeline": {
+            "1": "01/06/2026"
+          }
+        },
+        {
+          "id": 1011,
+          "status": "New",
+          "projNo": "2616",
+          "client": "APOLLO",
+          "site": "RAIPUR",
+          "machine": "CONVERSION OF GI TO GL IN 2112",
+          "stage": 6,
+          "owner": "Design Team",
+          "pm": "Satyendra Yadav",
+          "desc": "CONVERSION OF GI TO GL IN 2112",
+          "hasTechScope": false,
+          "hasPO": false,
+          "timeline": {
+            "1": "01/06/2026"
+          }
+        },
+        {
+          "id": 1012,
+          "status": "New",
+          "projNo": "2622",
+          "client": "AECPL",
+          "site": "AGARTALA",
+          "machine": "PCC/HT Panel for P-2527 null MM @ null MPM",
+          "stage": 6,
+          "owner": "Design Team",
+          "pm": "Saurabh Jangra",
+          "desc": "PCC/HT Panel for P-2527 null MM @ null MPM",
+          "hasTechScope": false,
+          "hasPO": false,
+          "timeline": {
+            "1": "01/06/2026"
+          }
+        },
+        {
+          "id": 1013,
+          "status": "New",
+          "projNo": "2620",
+          "client": "PROMPT",
+          "site": "DUDHOLA PALWAL",
+          "machine": "PUSH PULL PICKLING LINE 1650MM WIDE @ 120MPM 1650 MM @ 120 MPM",
+          "stage": 3,
+          "owner": "Finance",
+          "pm": "Pending",
+          "desc": "PUSH PULL PICKLING LINE 1650MM WIDE @ 120MPM 1650 MM @ 120 MPM",
+          "hasTechScope": false,
+          "hasPO": false,
+          "timeline": {
+            "1": "01/06/2026"
+          }
+        },
+        {
+          "id": 1014,
+          "status": "New",
+          "projNo": "2628",
+          "client": "APOLLO",
+          "site": "RAIPUR",
+          "machine": "RECOILER GEARBOX ASSY FOR EXISTING OFFLINE SPM PROJECT-2103 750 MM @ 150 MPM",
+          "stage": 5,
+          "owner": "Project Manager",
+          "pm": "Aditya Saini",
+          "desc": "RECOILER GEARBOX ASSY FOR EXISTING OFFLINE SPM PROJECT-2103 750 MM @ 150 MPM",
+          "hasTechScope": false,
+          "hasPO": false,
+          "timeline": {
+            "1": "01/06/2026"
+          }
+        },
+        {
+          "id": 1015,
+          "status": "New",
+          "projNo": "2625",
+          "client": "VIKAS IRON & STEEL CO.",
+          "site": "FARIDABAD",
+          "machine": "REWINDING WITH SLITTING LINE 1500MM@400MPM",
+          "stage": 3,
+          "owner": "Finance",
+          "pm": "Pending",
+          "desc": "REWINDING WITH SLITTING LINE 1500MM@400MPM",
+          "hasTechScope": false,
+          "hasPO": false,
+          "timeline": {
+            "1": "01/06/2026"
+          }
+        },
+        {
+          "id": 1016,
+          "status": "New",
+          "projNo": "2615",
+          "client": "BMWIL",
+          "site": "Bokaro",
+          "machine": "SPARE 6 HI COLD ROLLING MILL 1250 MM @ 1200 MPM",
+          "stage": 6,
+          "owner": "Design Team",
+          "pm": "MAYANK BANDHA",
+          "desc": "SPARE 6 HI COLD ROLLING MILL 1250 MM @ 1200 MPM",
+          "hasTechScope": false,
+          "hasPO": false,
+          "timeline": {
+            "1": "01/06/2026"
+          }
+        },
+        {
+          "id": 1017,
+          "status": "New",
+          "projNo": "2612",
+          "client": "BMWIL",
+          "site": "Bokaro",
+          "machine": "SPARE FOR HR SLITTING LINE, 2000MM@150MPM",
+          "stage": 6,
+          "owner": "Design Team",
+          "pm": "OM DEV",
+          "desc": "SPARE FOR HR SLITTING LINE, 2000MM@150MPM",
+          "hasTechScope": false,
+          "hasPO": false,
+          "timeline": {
+            "1": "01/06/2026"
+          }
+        },
+        {
+          "id": 1018,
+          "status": "New",
+          "projNo": "2613",
+          "client": "BMWIL",
+          "site": "Bokaro",
+          "machine": "SPARE FOR PPL, 2000MM @ 130MPM, 4 TANK",
+          "stage": 6,
+          "owner": "Design Team",
+          "pm": "Aditya Saini",
+          "desc": "SPARE FOR PPL, 2000MM @ 130MPM, 4 TANK",
+          "hasTechScope": false,
+          "hasPO": false,
+          "timeline": {
+            "1": "01/06/2026"
+          }
+        },
+        {
+          "id": 1019,
+          "status": "New",
+          "projNo": "2614",
+          "client": "BMWIL",
+          "site": "Bokaro",
+          "machine": "SPARE FOR REWINDING CUM TRIMMING - 1500MM@500MPM",
+          "stage": 6,
+          "owner": "Design Team",
+          "pm": "Kunal Dagar",
+          "desc": "SPARE FOR REWINDING CUM TRIMMING - 1500MM@500MPM",
+          "hasTechScope": false,
+          "hasPO": false,
+          "timeline": {
+            "1": "01/06/2026"
+          }
+        },
+        {
+          "id": 1020,
+          "status": "New",
+          "projNo": "2619",
+          "client": "AMNS INDIA",
+          "site": "Gandhidham",
+          "machine": "UPGRADATION OF EXISTING GI TO OPTIGAL 1250MM@150MPM",
+          "stage": 6,
+          "owner": "Design Team",
+          "pm": "Aditya Sharma",
+          "desc": "UPGRADATION OF EXISTING GI TO OPTIGAL 1250MM@150MPM",
+          "hasTechScope": false,
+          "hasPO": false,
+          "timeline": {
+            "1": "01/06/2026"
+          }
+        }
+      ];
+
+      async function initProjectsData() {
+        let idbData = await IDBStorage.get('ydKickoffProjects');
+        if (idbData && Array.isArray(idbData) && idbData.length > 0) {
+          projectsData = idbData;
+        } else {
+          let savedData = localStorage.getItem('ydKickoffProjects');
+          if (savedData) {
+            try { projectsData = JSON.parse(savedData); } catch (e) { }
+          }
+        }
+        if (!projectsData || !Array.isArray(projectsData) || projectsData.length === 0) {
+          projectsData = JSON.parse(JSON.stringify(defaultMockData));
+        }
+        window.projectsData = projectsData;
+        window.saveProjects = saveProjects;
+        window.getProject = getProject;
+        window.renderTable = renderTable;
+        window.IDBStorage = IDBStorage;
+        window.dataUrlToBlob = dataUrlToBlob;
+
+        // Sanitize legacy blob URLs that expired upon page refresh
+        let dataChanged = false;
+        projectsData.forEach(p => {
+          if (p.techScopeUrl && p.techScopeUrl.startsWith('blob:')) {
+            p.techScopeUrl = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+            dataChanged = true;
+          }
+          if (p.poUrl && p.poUrl.startsWith('blob:')) {
+            p.poUrl = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+            dataChanged = true;
+          }
+          if (p.advanceReceiptUrl && p.advanceReceiptUrl.startsWith('blob:')) {
+            p.advanceReceiptUrl = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+            dataChanged = true;
+          }
+          if (p.loeUrl && p.loeUrl.startsWith('blob:')) {
+            p.loeUrl = 'LOE_Template.xls';
+            dataChanged = true;
+          }
+        });
+        if (dataChanged) saveProjects();
+        renderTable();
+        if (typeof showDrawingsProjectsList === 'function' && $('#drawingsView').is(':visible')) {
+          showDrawingsProjectsList();
+        }
+      }
+      initProjectsData();
+
+      async function saveProjects() {
+        try {
+          window.projectsData = projectsData;
+          await IDBStorage.set('ydKickoffProjects', projectsData);
+          try {
+            localStorage.setItem('ydKickoffProjects', JSON.stringify(projectsData));
+          } catch (err) {
+            // Quietly catch QuotaExceededError since IDB has saved the data locally without any limit
+          }
+        } catch (err) {
+          console.error("Storage error:", err);
+          Swal.fire({
+            icon: 'error',
+            title: 'Storage Error',
+            text: 'Could not save data to local IndexedDB. Please check browser permissions.',
+            confirmButtonText: 'Got it'
+          });
+        }
+      }
+      window.saveProjects = saveProjects;
+
+      function fileToDataUrl(file) {
+        return new Promise(resolve => {
+          if (!file) return resolve(null);
+          var reader = new FileReader();
+          reader.onload = e => resolve(e.target.result);
+          reader.readAsDataURL(file);
+        });
+      }
+
+      window.openProjectFileFromId = function (projId, field) {
+        let proj = getProject(projId);
+        if (!proj) return;
+        let url = proj[field];
+        if (!url) {
+          if (field === 'techScopeUrl' && proj.hasTechScope) url = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+          else if (field === 'poUrl' && proj.hasPO) url = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+          else if (field === 'advanceReceiptUrl' && proj.hasAdvanceReceipt) url = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+          else if (field === 'loeUrl' && proj.hasLoe) url = 'LOE_Template.xls';
+        }
+        if (!url) {
+          Swal.fire('No File Attached', 'There is no file uploaded or attached for this item yet.', 'info');
+          return;
+        }
+
+        let title = field === 'techScopeUrl' ? 'Technical Scope' : (field === 'poUrl' ? 'Purchase Order' : (field === 'advanceReceiptUrl' ? 'Advance Receipt' : 'Attached Document'));
+
+        if (url.startsWith('data:')) {
+          const blob = dataUrlToBlob(url);
+          if (!blob) {
+            Swal.fire('Error', 'Could not parse attached file data.', 'error');
+            return;
+          }
+          const blobUrl = URL.createObjectURL(blob);
+          const extOrMime = blob.type || '';
+          const isExcel = field === 'loeUrl' || extOrMime.includes('excel') || extOrMime.includes('spreadsheet') || extOrMime.includes('sheet');
+          if (isExcel) {
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = proj.projNo + '_' + (field === 'loeUrl' ? 'LOE.xlsx' : 'Document.xlsx');
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          } else {
+            $('#pdfViewerTitle').html(`<i class="fa fa-file-pdf text-danger me-2"></i> ${escapeHtml(title)} - Project ${escapeHtml(proj.projNo)} <a href="${blobUrl}" download="${proj.projNo}_${title}.pdf" class="btn btn-sm btn-outline-light ms-3"><i class="fa fa-download me-1"></i>Download</a>`);
+            $('#pdfViewerContainer').html(`<object data="${blobUrl}" type="${blob.type || 'application/pdf'}" style="width: 100%; height: 100%; border: none;"><iframe src="${blobUrl}" style="width: 100%; height: 100%; border: none;"></iframe></object>`);
+            $('#pdfViewerModal').modal('show');
+          }
+        } else {
+          if (url.endsWith('.xls') || url.endsWith('.xlsx')) {
+            window.open(url, '_blank');
+          } else {
+            $('#pdfViewerTitle').html(`<i class="fa fa-file-pdf text-danger me-2"></i> ${escapeHtml(title)} - Project ${escapeHtml(proj.projNo)} <a href="${url}" target="_blank" class="btn btn-sm btn-outline-light ms-3"><i class="fa fa-external-link-alt me-1"></i>Open in New Tab</a>`);
+            $('#pdfViewerContainer').html(`<iframe src="${url}" style="width: 100%; height: 100%; border: none;"></iframe>`);
+            $('#pdfViewerModal').modal('show');
+          }
+        }
+      };
+
+      window.openExcelViewer = function (projId) {
+        let proj = getProject(projId);
+        if (!proj || !proj.loeData || proj.loeData.length === 0) {
+          openProjectFileFromId(projId, 'loeUrl');
+          return;
+        }
+
+        $('#detailsModal').modal('hide');
+        var tbody = $('#excelViewerTable tbody');
+        tbody.empty();
+
+        proj.loeData.forEach(function (item) {
+          tbody.append(`
+            <tr>
+              <td class="text-center fw-bold text-muted">${item.autoId}</td>
+              <td class="fw-bold text-center">${item.srNo}</td>
+              <td>${item.assemblyName || ''}</td>
+              <td><span class="text-muted">${item.drawingNo || '-'}</span></td>
+              <td><span class="badge bg-light text-dark border">${item.dispatchWeek || '-'}</span></td>
+              <td><span class="text-success fw-bold">${item.billingValue ? '₹' + item.billingValue : '-'}</span></td>
+            </tr>
+          `);
+        });
+
+        $('#btnDownloadLoeOrigin').off('click').on('click', function () {
+          openProjectFileFromId(projId, 'loeUrl');
+        });
+
+        $('#excelViewerModal').modal('show');
+      };
+
+      // Initialize DataTable
+      var dt = $('#kickoffTable').DataTable({
+        pageLength: 25,
+        order: [[3, "asc"]],
+      });
+
+      function renderTable() {
+        dt.clear();
+        projectsData.forEach(p => {
+          let stageKey = CONSTANTS.STAGE_MAP[p.stage];
+          let stageConfig = CONSTANTS.STATUS_CONFIG[stageKey] || { cls: "bg-secondary", label: "Unknown" };
+
+          let actionBtn = "";
+          if (p.stage === 1) actionBtn = `<button class="btn btn-sm btn-primary fw-bold text-white btn-allocate-proj" data-id="${p.id}"><i class="fa fa-arrow-right me-1"></i>Next</button>`;
+          else if (p.stage === 1.5) actionBtn = `<button class="btn btn-sm btn-warning fw-bold text-dark btn-electrical" data-id="${p.id}"><i class="fa fa-bolt me-1"></i>Electrical</button>`;
+          else if (p.stage === 2) actionBtn = `<button class="btn btn-sm btn-warning fw-bold text-dark btn-dir-decision" data-id="${p.id}"><i class="fa fa-clock me-1"></i>Dir Decision</button>`;
+          else if (p.stage === 3) actionBtn = `<button class="btn btn-sm btn-warning fw-bold text-dark btn-finance-advance" data-id="${p.id}"><i class="fa fa-money-bill me-1"></i>Advance</button>`;
+          else if (p.stage === 4) actionBtn = `<button class="btn btn-sm btn-primary fw-bold text-white btn-allocate-pm" data-id="${p.id}"><i class="fa fa-user me-1"></i>Allocate PM</button>`;
+          else if (p.stage === 5) actionBtn = `<button class="btn btn-sm btn-info fw-bold text-dark btn-kickoff" data-id="${p.id}"><i class="fa fa-users me-1"></i>Kickoff</button>`;
+          else if (p.stage === 6) actionBtn = `<button class="btn btn-sm btn-primary fw-bold text-white btn-loe" data-id="${p.id}"><i class="fa fa-file-alt me-1"></i>LOE</button>`;
+          else if (p.stage === 7) actionBtn = `<button class="btn btn-sm btn-warning fw-bold text-dark btn-schedule" data-id="${p.id}"><i class="fa fa-calendar me-1"></i>Schedule</button>`;
+          else if (p.stage === 8) actionBtn = `<button class="btn btn-sm btn-info fw-bold text-dark btn-dates" data-id="${p.id}"><i class="fa fa-calendar-check me-1"></i>Dates</button>`;
+          else if (p.stage === 8.5) actionBtn = `<button class="btn btn-sm btn-warning fw-bold text-dark btn-vp-approve" data-id="${p.id}"><i class="fa fa-check me-1"></i>VP Appr</button>`;
+          else if (p.stage === 9) actionBtn = `<button class="btn btn-sm btn-danger fw-bold text-white btn-dir-approve" data-id="${p.id}"><i class="fa fa-check-double me-1"></i>Dir Appr</button>`;
+          else if (p.stage === 10) actionBtn = `<button class="btn btn-sm btn-success fw-bold text-white" onclick="showDrawingsView()"><i class="fa fa-drafting-compass me-1"></i>Drawings</button>`;
+
+          // YDComplan pill button — additive, appears for stage >= 7 (LOE uploaded)
+          let ydcBtn = (p.stage >= 7) ? `<button class="btn btn-sm btn-outline-success fw-bold act-mini ms-1" onclick="event.stopPropagation();showYDComplanView(${p.id})" title="Open in YDComplan Execution"><i class="fa fa-cogs me-1"></i>YDComplan</button>` : '';
+          let deleteBtn = `<button class="btn btn-sm btn-danger btn-delete-proj ms-1" data-id="${p.id}" title="Delete Project"><i class="fa fa-trash"></i></button>`;
+
+          let rowHtml = `
+            <tr>
+              <td><span class="badge rounded-pill ${p.status === 'New' ? 'badge-sla-green' : 'bg-secondary'}" style="min-width: 60px">${p.status}</span></td>
+              <td><span class="fw-bold">${p.projNo}</span></td>
+              <td><div>${p.client}</div><div class="small text-muted">${p.site}</div></td>
+              <td><div>${p.machine}</div></td>
+              <td><span class="badge status-badge ${stageConfig.cls}">${stageConfig.label}</span></td>
+              <td><div class="fw-bold small">${p.owner}</div></td>
+              <td><div class="${p.pm === 'Pending' ? 'text-muted fst-italic' : 'fw-bold'}">${p.pm}</div></td>
+              <td><div class="action-cell d-flex align-items-center flex-nowrap">${actionBtn}${ydcBtn}${deleteBtn}</div></td>
+            </tr>
+          `;
+          dt.row.add($(rowHtml));
+        });
+        dt.draw();
+      }
+
+      // Initial render
+      renderTable();
+      window.renderTable = renderTable;
+
+      // Delete Project Logic
+      $(document).on('click', '.btn-delete-proj', function (e) {
+        e.stopPropagation(); // prevent modal from opening
+        let id = $(this).data('id');
+        Swal.fire({
+          title: 'Delete Project?',
+          text: "Are you sure you want to delete this project? This cannot be undone.",
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Yes, Delete',
+          confirmButtonColor: '#d33'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            projectsData = projectsData.filter(p => p.id != id);
+            saveProjects();
+            renderTable();
+          }
+        });
+      });
+
+      // Show Details Modal on row click
+      $('#kickoffTable tbody').on('click', 'tr', function (e) {
+        if ($(e.target).closest("button").length) return;
+
+        let id = $(this).find('button').data('id');
+        let proj = getProject(id);
+        if (!proj) return;
+
+        $('#detCode').text(proj.projNo || "TBD");
+        $('#detStatus').text(proj.status);
+        $('#detInit').text(proj.initiatedOn || new Date().toLocaleDateString());
+        $('#detSO').text(proj.soNo || "-");
+        $('#detMT').text(proj.machine);
+        $('#detSite').text(proj.site || "-");
+        $('#detDesc').text(proj.desc || "Pending Allocation Details");
+
+        $('#detFilesList').html('');
+        if (proj.techScopeUrl || proj.hasTechScope) {
+          $('#detFilesList').append(`<button onclick="openProjectFileFromId(${proj.id}, 'techScopeUrl')" class="btn btn-secondary btn-sm p-2"><i class="fa fa-file-pdf me-1"></i> Technical Scope</button>&nbsp;`);
+        }
+        if (proj.poUrl || proj.hasPO) {
+          $('#detFilesList').append(`<button onclick="openProjectFileFromId(${proj.id}, 'poUrl')" class="btn btn-secondary btn-sm p-2"><i class="fa fa-file-pdf me-1"></i> Purchase Order</button>&nbsp;`);
+        }
+        if (proj.advanceReceiptUrl || proj.hasAdvanceReceipt) {
+          $('#detFilesList').append(`<button onclick="openProjectFileFromId(${proj.id}, 'advanceReceiptUrl')" class="btn btn-secondary btn-sm p-2"><i class="fa fa-file-pdf me-1"></i> Advance Receipt</button>&nbsp;`);
+        }
+        if (proj.loeUrl || proj.hasLoe) {
+          if (proj.loeData && proj.loeData.length > 0) {
+            $('#detFilesList').append(`<button onclick="openExcelViewer(${proj.id})" class="btn btn-success btn-sm p-2 text-white border-0"><i class="fa fa-file-excel me-1"></i> View LOE Document</button>&nbsp;`);
+          } else {
+            $('#detFilesList').append(`<button onclick="openProjectFileFromId(${proj.id}, 'loeUrl')" class="btn btn-secondary btn-sm p-2"><i class="fa fa-file-excel me-1"></i> Download LOE Document</button>&nbsp;`);
+          }
+        }
+
+        let tl = proj.timeline || {};
+        let s = proj.stage;
+        let stepMapping = [
+          { elem: 0, s: 0 },
+          { elem: 1, s: 1 },
+          { elem: 2, s: 2 },
+          { elem: 3, s: 3 },
+          { elem: 4, s: 4 },
+          { elem: 5, s: 5 },
+          { elem: 6, s: 6 },
+          { elem: 7, s: 7 },
+          { elem: 8, s: 8 },
+          { elem: 9, s: 8.5 },
+          { elem: 10, s: 9 }
+        ];
+
+        let stepperItems = $('#projectStepper .stepper-item');
+        stepperItems.removeClass('completed active').find('.step-counter').html('<i class="fa fa-circle-notch opacity-25"></i>');
+
+        stepMapping.forEach(step => {
+          let item = stepperItems.eq(step.elem);
+          let isSkippedFinance = (step.s === 3 && proj.bypassedAdvance);
+
+          // Show date on hover if available
+          let dateStr = tl[step.s] ? `\n(Completed: ${tl[step.s]})` : "";
+          if (isSkippedFinance) dateStr = "\n(Bypassed)";
+          let titleText = item.find('.step-name').text().replace('\n', ' ') + dateStr;
+          item.attr('title', titleText);
+
+          if (isSkippedFinance) {
+            item.addClass('completed opacity-50');
+            item.find('.step-counter').html('<i class="fa fa-share text-secondary"></i>').css({ 'background': '#e9ecef', 'border-color': '#dee2e6' });
+          } else if (s > step.s || s === 10) {
+            item.addClass('completed').find('.step-counter').html('<i class="fa fa-check"></i>').removeAttr('style');
+          } else if (s === step.s || (s === 1.5 && step.s === 1)) {
+            item.addClass('active').find('.step-counter').html('<i class="fa fa-spinner fa-spin"></i>').removeAttr('style');
+          } else {
+            item.find('.step-counter').html('<i class="fa fa-circle-notch opacity-25"></i>').removeAttr('style');
+          }
+        });
+
+        new bootstrap.Modal(document.getElementById('detailsModal')).show();
+      });
+
+      // Initialize Select2 in Create Modal
+      $('#createModal').on('shown.bs.modal', function () {
+        $('#inpClient').select2({
+          theme: "bootstrap-5",
+          dropdownParent: $('#createModal .modal-content'),
+          tags: true,
+          placeholder: "Search or Type New Client...",
+          width: "100%",
+        });
+      });
+
+      // Live clock for attendance modal
+      setInterval(function () {
+        var now = new Date();
+        $('#liveClock').text(now.toLocaleTimeString());
+      }, 1000);
+
+      // Initiate Workflow Logic
+      $('#btnInitiateWorkflow').click(async function () {
+        if (!$('#createForm')[0].checkValidity()) {
+          $('#createForm')[0].reportValidity();
+          return;
+        }
+
+        var client = $('#inpClient').val() || 'New Client';
+        var site = $('#inpSite').val();
+        var machine = $('#inpMachine').val();
+        var isElectrical = $('#inpElectrical').is(':checked');
+
+        var soNo = $('#inpSO').val() || '-';
+        var techScopeFile = $('#inpTechScope')[0].files[0];
+        var poFile = $('#inpPO')[0].files[0];
+
+        let techScopeUrl = techScopeFile ? await fileToDataUrl(techScopeFile) : null;
+        let poUrl = poFile ? await fileToDataUrl(poFile) : null;
+
+        let newId = Date.now();
+        projectsData.unshift({
+          id: newId,
+          status: "New",
+          projNo: "TBD",
+          client: client,
+          site: site,
+          machine: machine,
+          soNo: soNo,
+          initiatedOn: new Date().toLocaleDateString(),
+          hasTechScope: !!techScopeFile,
+          hasPO: !!poFile,
+          techScopeUrl: techScopeUrl,
+          poUrl: poUrl,
+          timeline: { 0: new Date().toLocaleDateString() },
+          stage: isElectrical ? 1.5 : 1, // Stage 1.5 if electrical only
+          owner: "Design Team",
+          pm: "Pending",
+          isElectrical: isElectrical
+        });
+
+        saveProjects();
+        renderTable();
+
+        $('#createModal').modal('hide');
+        $('#createForm')[0].reset();
+        $('#inpClient').val(null).trigger('change');
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Workflow Initiated',
+          text: 'The project has been successfully initiated.',
+          timer: 2000,
+          showConfirmButton: false
+        });
+      });
+
+      // Shared logic to get project by button click
+      var currentProjectId = null;
+      function getProject(id) {
+        return (window.projectsData || projectsData).find(p => p.id == id);
+      }
+      window.getProject = getProject;
+
+      // Allocate Project Logic (Stage 1 -> 2)
+      $(document).on('click', '.btn-allocate-proj', function () {
+        currentProjectId = $(this).data('id');
+        $('#allocateProjModal').modal('show');
+      });
+
+      $('#btnSaveAllocation').click(function () {
+        if (!$('#allocateProjForm')[0].checkValidity()) {
+          $('#allocateProjForm')[0].reportValidity();
+          return;
+        }
+        var proj = getProject(currentProjectId);
+        if (proj) {
+          proj.timeline = proj.timeline || {}; proj.timeline[proj.stage] = new Date().toLocaleDateString();
+          proj.projNo = $('#inpAllocateProjNo').val();
+          proj.desc = $('#inpAllocateDesc').val();
+          proj.stage = 2; // PENDING_DIRECTOR_DECISION
+          proj.owner = "Director";
+          saveProjects();
+          renderTable();
+        }
+        $('#allocateProjModal').modal('hide');
+        $('#allocateProjForm')[0].reset();
+        Swal.fire({ icon: 'success', title: 'Project Allocated', timer: 2000, showConfirmButton: false });
+      });
+
+      // Electrical Design Logic (Stage 1.5 -> 2)
+      $(document).on('click', '.btn-electrical', function () {
+        let proj = getProject($(this).data('id'));
+        if (proj) {
+          proj.timeline = proj.timeline || {}; proj.timeline[proj.stage] = new Date().toLocaleDateString();
+          proj.stage = 2; // Move to director decision after electrical design
+          proj.owner = "Director";
+          saveProjects();
+          renderTable();
+          Swal.fire({ icon: 'success', title: 'Electrical Design Completed', timer: 2000, showConfirmButton: false });
+        }
+      });
+
+      // Director Decision (Stage 2 -> 3 or 4)
+      $(document).on('click', '.btn-dir-decision', function () {
+        currentProjectId = $(this).data('id');
+        $('#directorDecisionModal').modal('show');
+      });
+
+      $('#btnProceedWithAdvance').click(function () {
+        var proj = getProject(currentProjectId);
+        if (proj) {
+          proj.timeline = proj.timeline || {}; proj.timeline[proj.stage] = new Date().toLocaleDateString();
+          proj.stage = 3; // AWAITING_ADVANCE
+          proj.owner = "Finance";
+          saveProjects();
+          renderTable();
+        }
+        $('#directorDecisionModal').modal('hide');
+      });
+
+      $('#btnProceedWithoutAdvance').click(function () {
+        var proj = getProject(currentProjectId);
+        if (proj) {
+          proj.timeline = proj.timeline || {}; proj.timeline[proj.stage] = new Date().toLocaleDateString();
+          proj.stage = 4; // PENDING_PM_ASSIGNMENT
+          proj.owner = "COO/VP";
+          proj.bypassedAdvance = true;
+          saveProjects();
+          renderTable();
+        }
+        $('#directorDecisionModal').modal('hide');
+      });
+
+      // Finance Advance (Stage 3 -> 4)
+      $(document).on('click', '.btn-finance-advance', function () {
+        currentProjectId = $(this).data('id');
+        $('#financeAdvanceModal').modal('show');
+      });
+
+      $('#btnSaveAdvance').click(async function () {
+        var proj = getProject(currentProjectId);
+        if (proj) {
+          var receiptFile = $('#inpAdvanceReceipt')[0].files[0];
+          proj.advanceAmount = $('#inpAdvanceAmount').val();
+          if (receiptFile) {
+            proj.hasAdvanceReceipt = true;
+            proj.advanceReceiptUrl = await fileToDataUrl(receiptFile);
+          }
+
+          proj.timeline = proj.timeline || {}; proj.timeline[proj.stage] = new Date().toLocaleDateString();
+          proj.stage = 4; // PENDING_PM_ASSIGNMENT
+          proj.owner = "COO/VP";
+          saveProjects();
+          renderTable();
+        }
+        $('#financeAdvanceModal').modal('hide');
+        $('#inpAdvanceAmount').val('');
+        $('#inpAdvanceReceipt').val('');
+      });
+
+      // Allocate PM (Stage 4 -> 5)
+      $(document).on('click', '.btn-allocate-pm', function () {
+        currentProjectId = $(this).data('id');
+        $('#allocatePmModal').modal('show');
+      });
+
+      $('#btnSavePm').click(function () {
+        var proj = getProject(currentProjectId);
+        if (proj) {
+          proj.timeline = proj.timeline || {}; proj.timeline[proj.stage] = new Date().toLocaleDateString();
+          proj.pm = $('#inpSelectPm').val();
+          proj.stage = 5; // PENDING_KICKOFF
+          proj.owner = "Project Manager";
+          saveProjects();
+          renderTable();
+        }
+        $('#allocatePmModal').modal('hide');
+      });
+
+      // Kickoff Meeting (Stage 5 -> 6)
+      $(document).on('click', '.btn-kickoff', function () {
+        currentProjectId = $(this).data('id');
+        $('#kickoffModal').modal('show');
+      });
+
+      $('#btnSaveKickoff').click(function () {
+        var proj = getProject(currentProjectId);
+        if (proj) {
+          proj.timeline = proj.timeline || {}; proj.timeline[proj.stage] = new Date().toLocaleDateString();
+          proj.stage = 6; // PENDING_DESIGN_LOE
+          proj.owner = "Design Team";
+          saveProjects();
+          renderTable();
+        }
+        $('#kickoffModal').modal('hide');
+      });
+
+      // Prepare LOE (Stage 6 -> 7)
+      $(document).on('click', '.btn-loe', function () {
+        currentProjectId = $(this).data('id');
+        $('#loeModal').modal('show');
+      });
+
+      // Live Excel Preview on LOE File Selection
+      $('#inpLoeFile').change(function (e) {
+        var file = e.target.files[0];
+        if (!file) {
+          $('#loePreviewContainer').hide();
+          return;
+        }
+
+        var reader = new FileReader();
+        reader.onload = function (evt) {
+          try {
+            var data = new Uint8Array(evt.target.result);
+            var workbook = XLSX.read(data, { type: 'array' });
+            var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            var rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
+
+            var tbody = $('#loePreviewTable tbody');
+            tbody.empty();
+
+            var count = 0;
+            for (var i = 15; i < rows.length; i++) {
+              var row = rows[i];
+              if (!row || row.length === 0) continue;
+
+              var colA = String(row[0]).trim();
+              if (colA !== "" && /^\d+(\.\d+)?$/.test(colA)) {
+                count++;
+                tbody.append(`
+                  <tr>
+                    <td class="fw-bold">${colA}</td>
+                    <td>${row[2] ? String(row[2]).trim() : ""}</td>
+                    <td><span class="text-muted">${row[3] ? String(row[3]).trim() : "-"}</span></td>
+                  </tr>
+                `);
+              }
+            }
+
+            if (count > 0) {
+              $('#loePreviewContainer').show();
+            } else {
+              $('#loePreviewContainer').hide();
+              Swal.fire({ icon: 'warning', title: 'No Data Found', text: 'Could not find any valid numbered rows starting from row 16. Please check your Excel format.' });
+            }
+          } catch (err) {
+            console.error(err);
+            $('#loePreviewContainer').hide();
+            Swal.fire({ icon: 'error', title: 'Parsing Error', text: 'There was an error reading the Excel file.' });
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      });
+
+      $('#btnSaveLoe').click(function () {
+        var proj = getProject(currentProjectId);
+        var loeFile = $('#inpLoeFile')[0].files[0];
+
+        if (!loeFile) {
+          Swal.fire({ icon: 'warning', title: 'Missing File', text: 'Please upload the filled LOE template file.', timer: 2000, showConfirmButton: false });
+          return;
+        }
+
+        var reader = new FileReader();
+        reader.onload = async function (e) {
+          var data = new Uint8Array(e.target.result);
+          var workbook = XLSX.read(data, { type: 'array' });
+          var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          var rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
+
+          var loeData = [];
+          var autoId = 1;
+          for (var i = 15; i < rows.length; i++) {
+            var row = rows[i];
+            if (!row || row.length === 0) continue;
+
+            var colA = row[0];
+            var colC = row[2];
+            var colL = row[3]; // DRAWING/DOC. NO. (Column D)
+
+            var colAStr = String(colA).trim();
+            if (colAStr !== "" && /^\d+(\.\d+)?$/.test(colAStr)) {
+              loeData.push({
+                autoId: autoId++,
+                srNo: colAStr,
+                assemblyName: colC ? String(colC).trim() : "",
+                drawingNo: colL ? String(colL).trim() : ""
+              });
+            }
+          }
+
+          if (proj) {
+            proj.hasLoe = true;
+            proj.loeUrl = await fileToDataUrl(loeFile);
+            proj.loeData = loeData;
+
+            proj.timeline = proj.timeline || {}; proj.timeline[proj.stage] = new Date().toLocaleDateString();
+            proj.stage = 7; // PENDING_PLANNING_COLUMNS
+            proj.owner = "Planning & Forecasting";
+            saveProjects();
+            renderTable();
+          }
+          $('#loeModal').modal('hide');
+          $('#inpLoeFile').val('');
+        };
+        reader.readAsArrayBuffer(loeFile);
+      });
+
+      // Prepare Schedule (Stage 7 -> 8)
+      $(document).on('click', '.btn-schedule', function () {
+        currentProjectId = $(this).data('id');
+        var proj = getProject(currentProjectId);
+
+        var tbody = $('#scheduleTable tbody');
+        tbody.empty();
+
+        if (proj && proj.loeData && proj.loeData.length > 0) {
+          proj.loeData.forEach(function (item, idx) {
+            tbody.append(`
+              <tr>
+                <td class="text-center fw-bold text-muted">${item.autoId}</td>
+                <td class="fw-bold">${item.srNo}</td>
+                <td>${item.assemblyName}</td>
+                <td><span class="text-muted">${item.drawingNo || '-'}</span></td>
+                <td><input type="text" class="form-control form-control-sm dispatch-input paste-target" placeholder="e.g. Wk 43" data-idx="${idx}" data-col="dispatch" value="${item.dispatchWeek || ''}"></td>
+                <td>
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text">₹</span>
+                    <input type="number" class="form-control billing-input paste-target" placeholder="Value" data-idx="${idx}" data-col="billing" value="${item.billingValue || ''}">
+                  </div>
+                </td>
+              </tr>
+            `);
+          });
+          $('#scheduleTotalRow').text(proj.loeData.length + " Items loaded from LOE");
+        } else {
+          tbody.append('<tr><td colspan="5" class="text-center text-muted py-5"><i class="fa fa-folder-open fs-2 mb-3"></i><br>No LOE data found. Please ensure the LOE was uploaded correctly in the previous step.</td></tr>');
+          $('#scheduleTotalRow').text("0 Items");
+        }
+
+        $('#scheduleModal').modal('show');
+      });
+
+      $('#btnSaveSchedule').click(function () {
+        var proj = getProject(currentProjectId);
+        if (proj) {
+          if (proj.loeData) {
+            $('.dispatch-input').each(function () {
+              var idx = $(this).data('idx');
+              proj.loeData[idx].dispatchWeek = $(this).val();
+            });
+            $('.billing-input').each(function () {
+              var idx = $(this).data('idx');
+              proj.loeData[idx].billingValue = $(this).val();
+            });
+          }
+
+          proj.timeline = proj.timeline || {}; proj.timeline[proj.stage] = new Date().toLocaleDateString();
+          proj.stage = 8; // PENDING_DESIGN_RELEASE_WEEK
+          proj.owner = "Design Team";
+          saveProjects();
+          renderTable();
+        }
+        $('#scheduleModal').modal('hide');
+      });
+
+      // Bulk Paste Logic (Excel-like copy/paste)
+      $(document).on('paste', '.paste-target', function (e) {
+        var clipboardData = e.originalEvent.clipboardData || window.clipboardData;
+        var pastedData = clipboardData.getData('Text');
+        if (!pastedData) return;
+
+        var rows = pastedData.split(/\r\n|\n|\r/);
+        if (rows[rows.length - 1] === "") rows.pop(); // Remove trailing empty newline from Excel
+
+        if (rows.length <= 1 && pastedData.indexOf('\t') === -1) return; // Standard single-cell paste
+
+        e.preventDefault(); // Intercept paste
+
+        var startIdx = parseInt($(this).data('idx'));
+        var startCol = $(this).data('col');
+        var trs = $(this).closest('tbody').find('tr');
+
+        for (var i = 0; i < rows.length; i++) {
+          var cols = rows[i].split('\t');
+          var tr = trs.eq(startIdx + i);
+          if (!tr.length) break;
+
+          if (startCol === 'dispatch') {
+            if (cols[0] !== undefined) tr.find('.dispatch-input').val(cols[0].trim());
+            if (cols.length > 1) {
+              let val2 = cols[1].replace(/[^0-9.-]/g, '');
+              tr.find('.billing-input').val(val2);
+            }
+          } else if (startCol === 'billing') {
+            if (cols[0] !== undefined) {
+              let val1 = cols[0].replace(/[^0-9.-]/g, '');
+              tr.find('.billing-input').val(val1);
+            }
+          } else if (startCol === 'release') {
+            if (cols[0] !== undefined) tr.find('.release-input').val(cols[0].trim());
+          }
+        }
+      });
+
+      // Release Dates (Stage 8 -> 9)
+      $(document).on('click', '.btn-dates', function () {
+        currentProjectId = $(this).data('id');
+        var proj = getProject(currentProjectId);
+
+        var tbody = $('#datesTable tbody');
+        tbody.empty();
+
+        if (proj && proj.loeData && proj.loeData.length > 0) {
+          proj.loeData.forEach(function (item, idx) {
+            tbody.append(`
+              <tr>
+                <td class="text-center fw-bold text-muted">${item.autoId}</td>
+                <td class="text-center fw-bold">${item.srNo}</td>
+                <td>${item.assemblyName}</td>
+                <td><span class="text-muted">${item.drawingNo || '-'}</span></td>
+                <td><span class="badge bg-light text-dark border">${item.dispatchWeek || '-'}</span></td>
+                <td><span class="text-success fw-bold">${item.billingValue ? '₹' + item.billingValue : '-'}</span></td>
+                <td><input type="text" class="form-control form-control-sm release-input paste-target" placeholder="e.g. Wk 30" data-idx="${idx}" data-col="release" value="${item.releaseWeek || ''}"></td>
+              </tr>
+            `);
+          });
+          $('#datesTotalRow').text(proj.loeData.length + " Items loaded from LOE");
+        } else {
+          tbody.append('<tr><td colspan="7" class="text-center text-muted py-5"><i class="fa fa-folder-open fs-2 mb-3"></i><br>No LOE data found. Please ensure the LOE was uploaded correctly in the previous steps.</td></tr>');
+          $('#datesTotalRow').text("0 Items");
+        }
+
+        $('#datesModal').modal('show');
+      });
+
+      $('#btnSaveDates').click(function () {
+        var proj = getProject(currentProjectId);
+        if (proj) {
+          if (proj.loeData) {
+            $('.release-input').each(function () {
+              var idx = $(this).data('idx');
+              proj.loeData[idx].releaseWeek = $(this).val();
+            });
+          }
+
+          proj.timeline = proj.timeline || {}; proj.timeline[proj.stage] = new Date().toLocaleDateString();
+          proj.stage = 8.5; // PENDING_VP_APPROVAL
+          proj.owner = "COO/VP";
+          saveProjects();
+          renderTable();
+        }
+        $('#datesModal').modal('hide');
+      });
+
+      // VP Approve (Stage 8.5 -> 9)
+      $(document).on('click', '.btn-vp-approve', function () {
+        currentProjectId = $(this).data('id');
+        Swal.fire({
+          title: 'VP Approval?',
+          text: "As COO/VP, do you approve these dates?",
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonText: 'Approve'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            var proj = getProject(currentProjectId);
+            if (proj) {
+              proj.timeline = proj.timeline || {}; proj.timeline[proj.stage] = new Date().toLocaleDateString();
+              proj.stage = 9; // PENDING_DIRECTOR_APPROVAL
+              proj.owner = "Director";
+              saveProjects();
+              renderTable();
+            }
+          }
+        });
+      });
+
+      // Director Approve (Stage 9 -> 10)
+      $(document).on('click', '.btn-dir-approve', function () {
+        currentProjectId = $(this).data('id');
+        Swal.fire({
+          title: 'Final Approval?',
+          text: "As Director, do you approve this kickoff?",
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonText: 'Yes, Approve'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            var proj = getProject(currentProjectId);
+            if (proj) {
+              proj.timeline = proj.timeline || {}; proj.timeline[proj.stage] = new Date().toLocaleDateString();
+              proj.stage = 10; // ACTIVE
+              proj.owner = "Operations";
+              saveProjects();
+              renderTable();
+            }
+          }
+        });
+      });
+
+      // Bonus: Clear Data via settings button
+      $('#btnUserConfig').click(function (e) {
+        e.preventDefault();
+        Swal.fire({
+          title: 'Reset Demo State?',
+          text: "This will clear the local storage and reload original mock data.",
+          icon: 'warning',
+          showCancelButton: true
+        }).then((result) => {
+          if (result.isConfirmed) {
+            IDBStorage.remove('ydKickoffProjects').then(() => {
+              localStorage.removeItem('ydKickoffProjects');
+              location.reload();
+            });
+          }
+        });
+      });
+
+    });
+
+    // --- SPA View Switching Logic ---
+    window.showDrawingsView = function () {
+      $('#dashboardView').hide();
+      $('#drawingsView').fadeIn();
+      showDrawingsProjectsList();
+    };
+
+    window.showDashboardView = function () {
+      $('#drawingsView').hide();
+      $('#dashboardView').fadeIn();
+      renderTable();
+    };
+
+    window.showDrawingsProjectsList = function () {
+      $('#drawingsAssembliesDetail').hide();
+      $('#drawingsProjectsList').fadeIn();
+      loadProjectsData();
+    };
+
+    window.openProjectDrawings = function (projId) {
+      $('#drawingsProjectsList').hide();
+      $('#drawingsAssembliesDetail').fadeIn();
+
+      let pData = window.projectsData || (typeof projectsData !== 'undefined' ? projectsData : []);
+      let activeProjects = pData.filter(p => p.stage >= 10);
+      let proj = activeProjects.find(p => p.id == projId);
+      if (!proj) return;
+
+      let pm = proj.pm || "Unassigned";
+      $('#projectMeta').html(`
+          <strong class="text-dark">Project No:</strong> <span class="me-3">${proj.projNo || 'TBD'}</span>
+          <strong class="text-dark">Client:</strong> <span class="me-3">${escapeHtml(proj.client || 'N/A')}</span>
+          <strong class="text-dark">Location:</strong> <span class="me-3">${escapeHtml(proj.site || 'N/A')}</span>
+          <strong class="text-dark">PM:</strong> <span>${escapeHtml(pm)}</span>
+        `);
+
+      allAssemblies = [];
+      if (proj.loeData && proj.loeData.length > 0) {
+        proj.loeData.forEach((loeRow, idx) => {
+          allAssemblies.push({
+            _id: "ass_" + proj.id + "_" + idx,
+            projectNo: proj.projNo || "TBD",
+            projId: proj.id,
+            loeIdx: idx,
+            srNo: loeRow.srNo || loeRow.autoId,
+            assemblyName: loeRow.assemblyName,
+            drawingDocNo: loeRow.drawingNo,
+            dispatchWeek: loeRow.dispatchWeek || '-',
+            releaseWeek: loeRow.releaseWeek || '-',
+            subtasks: loeRow.subtasks || [],
+            drawingFiles: loeRow.drawingFiles || [],
+            remark: "Pending Design"
+          });
+        });
+      }
+
+      renderAssemblies();
+    };
+
+    // --- Drawings Dashboard Logic ---
+    let allAssemblies = [];
+
+    window.escapeHtml = function (v) {
+      return String(v == null ? "" : v).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+    };
+
+    window.loadProjectsData = function () {
+      let pData = window.projectsData || (typeof projectsData !== 'undefined' ? projectsData : []);
+      let activeProjects = pData.filter(p => p.stage >= 10);
+
+      let gridHtml = '';
+      if (activeProjects.length === 0) {
+        gridHtml = `<div class="col-12"><div class="alert alert-info"><i class="fa fa-info-circle me-2"></i>No active projects at Director Approved stage.</div></div>`;
+      } else {
+        activeProjects.forEach(proj => {
+          let totalAssy = proj.loeData ? proj.loeData.length : 0;
+          let released = 0;
+          if (proj.loeData) {
+            proj.loeData.forEach(loe => {
+              if (loe.drawingFiles && loe.drawingFiles.length > 0) released++;
+            });
+          }
+          let pending = totalAssy - released;
+          let pNo = proj.projNo || "TBD";
+
+          gridHtml += `
+                <div class="col-12 mb-2">
+                  <div class="card shadow-sm project-drawing-card border" onclick="openProjectDrawings('${proj.id}')" style="cursor: pointer; transition: transform 0.2s;">
+                    <div class="card-body d-flex flex-column flex-md-row justify-content-between align-items-md-center py-2 px-3">
+                      
+                      <!-- Left: Project Info -->
+                      <div class="d-flex align-items-center mb-3 mb-md-0">
+                        <div class="bg-dark text-white rounded p-2 me-3 text-center d-flex flex-column justify-content-center shadow-sm" style="min-width: 90px; height: 60px;">
+                          <small class="d-block text-white-50 lh-1" style="font-size: 10px;">PROJ</small>
+                          <strong class="fs-6 lh-1 mt-1">${pNo}</strong>
+                        </div>
+                        <div>
+                          <h6 class="mb-1 text-dark fw-bold">${escapeHtml(proj.client || 'Client N/A')} - ${escapeHtml(proj.site || 'Site N/A')}</h6>
+                          <span class="text-muted small">${escapeHtml(proj.machine || 'Machine N/A')}</span>
+                        </div>
+                      </div>
+
+                      <!-- Right: Stats & Stage -->
+                      <div class="d-flex align-items-center gap-4 border-md-start ps-md-4">
+                        <div class="text-center">
+                          <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 10px;">Assemblies</small>
+                          <span class="fs-5">${totalAssy}</span>
+                        </div>
+                        <div class="text-center">
+                          <small class="text-success d-block fw-bold text-uppercase" style="font-size: 10px;">Released</small>
+                          <span class="fs-5 fw-bold text-success">${released}</span>
+                        </div>
+                        <div class="text-center">
+                          <small class="text-warning d-block fw-bold text-uppercase" style="font-size: 10px;">Pending</small>
+                          <span class="fs-5 fw-bold text-warning">${pending}</span>
+                        </div>
+                        <div class="ms-3 d-flex align-items-center border-start ps-4">
+                          <span class="badge bg-primary px-3 py-2">Stage ${proj.stage}</span>
+                          <i class="fa fa-chevron-right text-muted ms-3"></i>
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                </div>`;
+        });
+      }
+
+      $('#drawingsProjectsGrid').html(gridHtml);
+    };
+
+    window.getAssembly = function (id) {
+      return allAssemblies.find(a => a._id === id);
+    };
+
+    window.isDividerRow = function (a) {
+      return a.isSection === true;
+    };
+
+    window.toggleChildren = function (parentKey, iconEl) {
+      iconEl.classList.toggle('open');
+      const isCollapsed = !iconEl.classList.contains('open');
+      document.querySelectorAll(`.child-of-${parentKey}`).forEach(el => {
+        if (isCollapsed) el.classList.add('d-none');
+        else el.classList.remove('d-none');
+      });
+    };
+
+    window.rowHtml = function (a, opts) {
+      if (a.isSection) {
+        return `
+              <tr class="section-divider">
+                <td colspan="8">${escapeHtml(a.assemblyName)}</td>
+              </tr>
+            `;
+      }
+
+      const drawingCount = (a.drawingFiles || []).length;
+      const isReleased = drawingCount > 0;
+
+      const subtasksCount = (a.subtasks || []).length;
+      const subtasksBtn = `<button class="btn btn-sm btn-outline-primary fw-bold" onclick="openSubtasksModal('${a.projId}', ${a.loeIdx})"><i class="fa fa-list me-1"></i>${subtasksCount} Components</button>`;
+
+      const viewBtnHtml = drawingCount
+        ? `<button type="button" class="btn btn-sm btn-success fw-bold" onclick="openDrawingsModal('${a._id}')"><i class="fa fa-eye me-1"></i>View (${drawingCount})</button>`
+        : `<span class="text-muted small fst-italic">No files</span>`;
+
+      const rowClasses = (opts.isParent ? "parent-row" : `child-row child-of-${opts.parentKey}${opts.startOpen ? "" : " d-none"}`) + (opts.isParent ? " sr-whole-row" : "");
+      const isChild = (a.srNo && String(a.srNo).includes('.'));
+      const srStyle = isChild ? 'color: #6f42c1; font-weight: 500;' : 'color: #d9534f; font-weight: 500;';
+
+      const chevron = opts.isParent
+        ? (opts.hasChildren ? `<span class="toggle-chevron${opts.startOpen ? " open" : ""} me-2 text-dark" onclick="toggleChildren('${opts.parentKey}', this)"><i class="fa fa-chevron-right"></i></span>` : `<span class="toggle-chevron invisible me-2"><i class="fa fa-chevron-right"></i></span>`)
+        : "";
+
+      const assemblyIcon = isChild
+        ? `<i class="fa fa-clipboard-check text-primary opacity-75 me-2 ms-4"></i>`
+        : chevron;
+
+      const assemblyClass = isChild ? 'text-secondary fw-normal' : 'text-dark fw-normal';
+
+      return `
+          <tr class="${rowClasses}" data-assembly-id="${a._id}">
+            <td><span style="${srStyle}">${escapeHtml(a.srNo || "")}</span></td>
+            <td><div class="${assemblyClass} d-flex align-items-center">${assemblyIcon}${escapeHtml(a.assemblyName || "")}</div></td>
+            <td><code class="small fw-bold text-danger">${escapeHtml(a.drawingDocNo || "")}</code></td>
+            <td><span class="badge bg-light text-dark border">${escapeHtml(a.dispatchWeek || "-")}</span></td>
+            <td><span class="badge bg-light text-dark border">${escapeHtml(a.releaseWeek || "-")}</span></td>
+            <td>${subtasksBtn}</td>
+            <td>${viewBtnHtml}</td>
+            <td class="upload-cell">
+              <div class="d-flex align-items-center gap-2">
+                <input type="file" multiple class="form-control form-control-sm w-75" id="drawingInput_${a._id}">
+                <button type="button" class="btn btn-sm btn-primary w-25" onclick="uploadAssemblyDrawing('${a.projId}', ${a.loeIdx}, '${a._id}')" title="Upload">
+                  <i class="fa fa-upload"></i>
+                </button>
+              </div>
+            </td>
+          </tr>`;
+    };
+
+    window.renderAssemblies = function () {
+      const filter = (document.getElementById("filterText").value || "").trim().toLowerCase();
+      const pendingOnly = document.getElementById("filterPendingOnly").checked;
+
+      const filtered = allAssemblies.filter((a) => {
+        if (a.isSection) return true; // Keep headers for now
+        const isReleased = (a.drawingFiles || []).length > 0;
+        if (pendingOnly && isReleased) return false;
+        if (!filter) return true;
+        const hay = [a.projectNo, a.assemblyName, a.drawingDocNo, a.srNo].map(v => String(v || "").toLowerCase()).join(" ");
+        return hay.includes(filter);
+      });
+
+      // Compute Stats
+      const realAssemblies = filtered.filter((a) => !isDividerRow(a));
+      const total = realAssemblies.length;
+      const released = realAssemblies.filter((a) => (a.drawingFiles || []).length > 0).length;
+
+      document.getElementById("statTotal").textContent = total;
+      document.getElementById("statReleased").textContent = released;
+      document.getElementById("statPending").textContent = total - released;
+
+      const tbody = document.getElementById("assembliesBody");
+      if (realAssemblies.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4">No assemblies found.</td></tr>`;
+        return;
+      }
+
+      let html = "";
+      let sIdx = 0;
+
+      // Very basic grouped rendering for prototype
+      filtered.forEach(a => {
+        if (a.isSection) {
+          html += `<tr class="section-divider"><td colspan="8">${escapeHtml(a.assemblyName)}</td></tr>`;
+          sIdx++;
+        } else {
+          let sr = String(a.srNo);
+          let isChild = sr.indexOf(".") >= 0;
+          let key = isChild ? sr.split('.')[0] : sr;
+          let kSafe = `s${sIdx}_${key}`;
+
+          // Determine if parent has children loosely by checking if any assembly has this key as prefix
+          let hasChildren = false;
+          if (!isChild) {
+            hasChildren = filtered.some(x => !x.isSection && String(x.srNo).startsWith(sr + "."));
+          }
+
+          html += rowHtml(a, {
+            isParent: !isChild,
+            hasChildren: hasChildren,
+            startOpen: filter.length > 0 || true, // Default open for demo
+            parentKey: kSafe
+          });
+        }
+      });
+
+      tbody.innerHTML = html;
+    };
+
+    window.uploadAssemblyDrawing = function (projId, loeIdx, id) {
+      let fileInput = document.getElementById('drawingInput_' + id);
+      if (!fileInput || fileInput.files.length === 0) {
+        Swal.fire('No File Selected', 'Please select a file to upload first.', 'warning');
+        return;
+      }
+
+      let pData = window.projectsData || (typeof projectsData !== 'undefined' ? projectsData : []);
+      let proj = pData.find(p => p.id == projId);
+      if (proj && proj.loeData && proj.loeData[loeIdx]) {
+        proj.loeData[loeIdx].drawingFiles = proj.loeData[loeIdx].drawingFiles || [];
+        let files = Array.from(fileInput.files);
+        let readCount = 0;
+
+        files.forEach(file => {
+          let reader = new FileReader();
+          reader.onload = async function (e) {
+            proj.loeData[loeIdx].drawingFiles.push({
+              _id: "new_" + Date.now() + Math.floor(Math.random() * 1000),
+              originalName: file.name,
+              fileData: e.target.result // Base64 data string
+            });
+
+            readCount++;
+            if (readCount === files.length) {
+              try {
+                let saveFn = window.saveProjects || (typeof saveProjects === 'function' ? saveProjects : null);
+                if (saveFn) await saveFn();
+                openProjectDrawings(projId); // Refresh table
+                loadProjectsData(); // Refresh grid silently
+                try { fileInput.value = ""; } catch (ex) { }
+                Swal.fire({ icon: 'success', title: 'Drawing Uploaded', timer: 1500, showConfirmButton: false });
+              } catch (err) {
+                console.error("Upload save error:", err);
+                Swal.fire('Error Saving Drawing', 'Could not save uploaded drawing file: ' + (err.message || err), 'error');
+              }
+            }
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+    };
+
+    window.openDrawingsModal = function (id) {
+      const a = getAssembly(id);
+      if (!a) return;
+
+      document.getElementById('drawingsModalTitle').innerHTML = `<i class="fa fa-drafting-compass me-2"></i>${escapeHtml(a.assemblyName)}`;
+
+      let bodyHtml = `
+          <div class="px-3 py-2 bg-white border-bottom d-flex justify-content-between align-items-center sticky-top">
+              <div class="form-check mb-0">
+                  <input class="form-check-input" type="checkbox" id="selectAllDwgs" onclick="toggleAllDwgs(this)">
+                  <label class="form-check-label fw-bold" for="selectAllDwgs">Select All</label>
+              </div>
+              <button class="btn btn-sm btn-primary" onclick="downloadSelectedDwgs('${a.projId}', ${a.loeIdx})">
+                  <i class="fa fa-download me-1"></i>Download Selected
+              </button>
+          </div>
+          <div class="list-group list-group-flush">`;
+
+      a.drawingFiles.forEach((f, i) => {
+        bodyHtml += `
+              <div class="list-group-item d-flex justify-content-between align-items-center">
+                  <div class="d-flex align-items-center flex-grow-1 me-3">
+                      <input class="form-check-input me-3 dwg-checkbox" type="checkbox" value="${f._id}">
+                      <span class="text-muted me-2" style="width:24px;">${i + 1}.</span>
+                      <a href="#" class="text-decoration-none text-truncate fw-bold text-dark" onclick="viewPdf('${a.projId}', ${a.loeIdx}, '${f._id}')">
+                          <i class="fa fa-file-pdf text-danger me-1"></i>${escapeHtml(f.originalName)}
+                      </a>
+                  </div>
+                  <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-info" onclick="viewPdf('${a.projId}', ${a.loeIdx}, '${f._id}')" title="View PDF"><i class="fa fa-eye"></i></button>
+                      <button class="btn btn-outline-primary" onclick="downloadSingleDwg('${a.projId}', ${a.loeIdx}, '${f._id}')" title="Download"><i class="fa fa-download"></i></button>
+                      <button class="btn btn-outline-danger" onclick="deleteMockFile('${a.projId}', ${a.loeIdx}, '${f._id}')" title="Delete"><i class="fa fa-trash"></i></button>
+                  </div>
+              </div>`;
+      });
+      bodyHtml += `</div>`;
+
+      document.getElementById('drawingsModalBody').innerHTML = bodyHtml;
+      new bootstrap.Modal(document.getElementById('drawingsModal')).show();
+    };
+
+    window.toggleAllDwgs = function (checkbox) {
+      $('.dwg-checkbox').prop('checked', checkbox.checked);
+    };
+
+    window.downloadSingleDwg = function (projId, loeIdx, fileId) {
+      let pData = window.projectsData || (typeof projectsData !== 'undefined' ? projectsData : []);
+      let proj = pData.find(p => p.id == projId);
+      if (!proj) return;
+      let fileObj = proj.loeData[loeIdx].drawingFiles.find(f => f._id === fileId);
+      if (!fileObj || !fileObj.fileData) {
+        Swal.fire('Error', 'File data not found. It might be a dummy file.', 'error');
+        return;
+      }
+      let toBlobFn = window.dataUrlToBlob || (typeof dataUrlToBlob === 'function' ? dataUrlToBlob : null);
+      const blob = toBlobFn ? toBlobFn(fileObj.fileData) : null;
+      if (!blob) {
+        Swal.fire('Error', 'Invalid file format.', 'error');
+        return;
+      }
+      const blobUrl = URL.createObjectURL(blob);
+      let a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = fileObj.originalName || 'drawing.pdf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    };
+
+    window.downloadSelectedDwgs = function (projId, loeIdx) {
+      let selected = $('.dwg-checkbox:checked').map(function () { return this.value; }).get();
+      if (selected.length === 0) {
+        Swal.fire('No Files Selected', 'Please select at least one drawing to download.', 'warning');
+        return;
+      }
+
+      let pData = window.projectsData || (typeof projectsData !== 'undefined' ? projectsData : []);
+      let proj = pData.find(p => p.id == projId);
+      if (!proj) return;
+
+      let count = 0;
+      let toBlobFn = window.dataUrlToBlob || (typeof dataUrlToBlob === 'function' ? dataUrlToBlob : null);
+      selected.forEach((fileId, index) => {
+        let fileObj = proj.loeData[loeIdx].drawingFiles.find(f => f._id === fileId);
+        if (fileObj && fileObj.fileData) {
+          setTimeout(() => {
+            const blob = toBlobFn ? toBlobFn(fileObj.fileData) : null;
+            if (blob) {
+              const blobUrl = URL.createObjectURL(blob);
+              let a = document.createElement('a');
+              a.href = blobUrl;
+              a.download = fileObj.originalName || 'drawing.pdf';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+            }
+          }, index * 300);
+          count++;
+        }
+      });
+
+      if (count > 0) {
+        Swal.fire({ icon: 'success', title: 'Downloading', text: `Started download for ${count} file(s).`, timer: 1500, showConfirmButton: false });
+      } else {
+        Swal.fire('Error', 'No valid file data found for the selected items.', 'error');
+      }
+    };
+
+    window.viewPdf = function (projId, loeIdx, fileId) {
+      let pData = window.projectsData || (typeof projectsData !== 'undefined' ? projectsData : []);
+      let proj = pData.find(p => p.id == projId);
+      if (!proj) return;
+
+      let fileObj = proj.loeData[loeIdx].drawingFiles.find(f => f._id === fileId);
+      if (!fileObj) return;
+
+      let fileName = fileObj.originalName || 'document.pdf';
+      let toBlobFn = window.dataUrlToBlob || (typeof dataUrlToBlob === 'function' ? dataUrlToBlob : null);
+
+      if (fileObj.fileData) {
+        const blob = toBlobFn ? toBlobFn(fileObj.fileData) : null;
+        const blobUrl = URL.createObjectURL(blob || new Blob([''], { type: 'application/pdf' }));
+        $('#pdfViewerTitle').html(`<i class="fa fa-file-pdf text-danger me-2"></i> ${escapeHtml(fileName)} <a href="${blobUrl}" download="${escapeHtml(fileName)}" class="btn btn-sm btn-outline-light ms-3"><i class="fa fa-download me-1"></i>Download</a>`);
+        $('#pdfViewerContainer').html(`<object data="${blobUrl}" type="${blob ? blob.type : 'application/pdf'}" style="width: 100%; height: 100%; border: none;"><iframe src="${blobUrl}" style="width: 100%; height: 100%; border: none;"></iframe></object>`);
+      } else {
+        const dummyPdf = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
+        const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(dummyPdf)}&embedded=true`;
+        $('#pdfViewerTitle').html(`<i class="fa fa-file-pdf text-danger me-2"></i> ${escapeHtml(fileName)} <a href="${dummyPdf}" target="_blank" class="btn btn-sm btn-outline-light ms-3"><i class="fa fa-external-link-alt me-1"></i>Open</a>`);
+        $('#pdfViewerContainer').html(`<iframe src="${viewerUrl}" style="width: 100%; height: 100%; border: none;"></iframe>`);
+      }
+
+      $('#pdfViewerModal').modal('show');
+    };
+
+    window.deleteMockFile = async function (projId, loeIdx, fileId) {
+      let pData = window.projectsData || (typeof projectsData !== 'undefined' ? projectsData : []);
+      let proj = pData.find(p => p.id == projId);
+      if (proj && proj.loeData && proj.loeData[loeIdx]) {
+        proj.loeData[loeIdx].drawingFiles = proj.loeData[loeIdx].drawingFiles.filter(f => f._id !== fileId);
+        let saveFn = window.saveProjects || (typeof saveProjects === 'function' ? saveProjects : null);
+        if (saveFn) await saveFn();
+
+        const modal = bootstrap.Modal.getInstance(document.getElementById('drawingsModal'));
+        if (modal) modal.hide();
+
+        openProjectDrawings(projId); // Refresh table
+        loadProjectsData(); // Refresh grid silently
+        Swal.fire({ icon: 'info', title: 'Drawing Deleted', timer: 1500, showConfirmButton: false });
+      }
+    };
+
+    // Subtasks Modal Logic
+    let currentSubtaskProjId = null;
+    let currentSubtaskLoeIdx = null;
+    let currentSubtaskSrNo = null;
+
+    window.openSubtasksModal = function (projId, loeIdx) {
+      currentSubtaskProjId = projId;
+      currentSubtaskLoeIdx = loeIdx;
+
+      let pData = window.projectsData || (typeof projectsData !== 'undefined' ? projectsData : []);
+      let proj = pData.find(p => p.id == projId);
+      if (!proj) return;
+
+      let loeRow = proj.loeData[loeIdx];
+      currentSubtaskSrNo = loeRow.srNo || '';
+      $('#subTitleAssembly').text(loeRow.assemblyName || 'Unknown Assembly');
+      $('#subTitleProject').text(proj.projNo || 'Unknown Project');
+
+      let tbody = $('#subtasksTable tbody');
+      tbody.empty();
+
+      let subtasks = loeRow.subtasks || [];
+      if (subtasks.length === 0) {
+        addSubtaskRow();
+      } else {
+        subtasks.forEach(task => addSubtaskRow(task));
+      }
+
+      let modalEl = document.getElementById('subtasksModal');
+      let modalInst = bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl);
+      if (modalInst) modalInst.show();
+      try { $('#subtasksModal').modal('show'); } catch (e) { }
+    };
+
+    window.addSubtaskRow = function (task = {}) {
+      let tbody = $('#subtasksTable tbody');
+      let trCount = tbody.find('tr').length + 1;
+      let tr = $(`
+            <tr>
+              <td class="text-center align-middle text-muted fw-bold row-num">${trCount}</td>
+              <td><input type="text" class="form-control form-control-sm st-comp st-paste-target" data-col="0" value="${escapeHtml(task.component || '')}"></td>
+              <td><input type="text" class="form-control form-control-sm st-dwg st-paste-target" data-col="1" value="${escapeHtml(task.drawingNo || '')}"></td>
+              <td>
+                <select class="form-select form-select-sm st-dwgreq">
+                  <option value="Required"${task.drawingReq === 'Required' ? ' selected' : ''}>Required</option>
+                  <option value="Not Required"${task.drawingReq === 'Not Required' ? ' selected' : ''}>Not Required</option>
+                </select>
+              </td>
+              <td>
+                <select class="form-select form-select-sm st-source">
+                  <option value="Inhouse"${task.source === 'Inhouse' ? ' selected' : ''}>Inhouse</option>
+                  <option value="Bought Out"${task.source === 'Bought Out' ? ' selected' : ''}>Bought Out</option>
+                </select>
+              </td>
+              <td><input type="number" class="form-control form-control-sm st-qty st-paste-target" data-col="2" value="${escapeHtml(task.qty || '')}"></td>
+              <td><input type="text" class="form-control form-control-sm st-mat st-paste-target" data-col="3" value="${escapeHtml(task.material || '')}"></td>
+              <td><input type="text" class="form-control form-control-sm st-wt st-paste-target" data-col="4" value="${escapeHtml(task.weight || '')}"></td>
+              <td class="text-center align-middle">
+                 <button class="btn btn-sm btn-outline-danger border-0 bg-transparent text-danger" onclick="deleteSubtaskRow(this)"><i class="fa fa-times"></i></button>
+              </td>
+            </tr>
+          `);
+      tbody.append(tr);
+      updateSubtaskRowNumbers();
+    };
+
+    window.deleteSubtaskRow = function (btn) {
+      $(btn).closest('tr').remove();
+      updateSubtaskRowNumbers();
+    };
+
+    function updateSubtaskRowNumbers() {
+      let prefix = currentSubtaskSrNo ? (currentSubtaskSrNo + '.') : '';
+      $('#subtasksTable tbody tr').each(function (i) {
+        $(this).find('.row-num').text(prefix + (i + 1));
+      });
+    }
+
+    $('#btnAddSubtaskRow').click(function () {
+      addSubtaskRow();
+    });
+
+    $('#btnSaveSubtasks').click(async function () {
+      let subtasks = [];
+      $('#subtasksTable tbody tr').each(function () {
+        let comp = $(this).find('.st-comp').val().trim();
+        let dwg = $(this).find('.st-dwg').val().trim();
+        let dwgReq = $(this).find('.st-dwgreq').val();
+        let source = $(this).find('.st-source').val();
+        let qty = $(this).find('.st-qty').val().trim();
+        let mat = $(this).find('.st-mat').val().trim();
+        let wt = $(this).find('.st-wt').val().trim();
+
+        if (comp || dwg || qty || mat || wt) {
+          subtasks.push({
+            component: comp,
+            drawingNo: dwg,
+            drawingReq: dwgReq,
+            source: source,
+            qty: qty,
+            material: mat,
+            weight: wt
+          });
+        }
+      });
+
+      let pData = window.projectsData || (typeof projectsData !== 'undefined' ? projectsData : []);
+      let proj = pData.find(p => p.id == currentSubtaskProjId);
+      if (proj && proj.loeData && proj.loeData[currentSubtaskLoeIdx]) {
+        proj.loeData[currentSubtaskLoeIdx].subtasks = subtasks;
+        let saveFn = window.saveProjects || (typeof saveProjects === 'function' ? saveProjects : null);
+        if (saveFn) await saveFn();
+
+        let renderTableFn = window.renderTable || (typeof renderTable === 'function' ? renderTable : null);
+        if (renderTableFn) renderTableFn();
+        let loadProjectsDataFn = window.loadProjectsData || (typeof loadProjectsData === 'function' ? loadProjectsData : null);
+        if (loadProjectsDataFn) loadProjectsDataFn();
+        if ($('#drawingsAssembliesDetail').is(':visible')) {
+          let renderAssembliesFn = window.renderAssemblies || (typeof renderAssemblies === 'function' ? renderAssemblies : null);
+          if (renderAssembliesFn) renderAssembliesFn();
+        }
+      }
+
+      let modalEl = document.getElementById('subtasksModal');
+      let modalInst = bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl);
+      if (modalInst) modalInst.hide();
+      try { $('#subtasksModal').modal('hide'); } catch (e) { }
+
+      Swal.fire({ icon: 'success', title: 'Saved', text: 'Components have been saved.', timer: 1500, showConfirmButton: false });
+    });
+
+    // Replace / Upload Documents Logic
+    window.openReplaceDocsModal = function() {
+      let pData = window.projectsData || [];
+      let proj = pData.find(p => p.id == currentDetailId);
+      if (!proj) return;
+      $('#repTechScope').val('');
+      $('#repPO').val('');
+      $('#repAdvReceipt').val('');
+      $('#repAdvAmount').val(proj.advAmount || '');
+      try { $('#replaceDocsModal').modal('show'); } catch(e) {}
+    };
+
+    window.saveReplacedDocs = async function() {
+      let pData = window.projectsData || [];
+      let proj = pData.find(p => p.id == currentDetailId);
+      if (!proj) return;
+
+      let tsFile = document.getElementById('repTechScope').files[0];
+      let poFile = document.getElementById('repPO').files[0];
+      let advFile = document.getElementById('repAdvReceipt').files[0];
+      let advAmt = $('#repAdvAmount').val().trim();
+
+      if (advAmt) proj.advAmount = advAmt;
+
+      let fileToDataUrl = f => new Promise((resolve) => {
+        let r = new FileReader();
+        r.onload = e => resolve(e.target.result);
+        r.readAsDataURL(f);
+      });
+
+      if (tsFile) {
+        proj.techScopeUrl = await fileToDataUrl(tsFile);
+        proj.techScopeName = tsFile.name;
+      }
+      if (poFile) {
+        proj.poUrl = await fileToDataUrl(poFile);
+        proj.poName = poFile.name;
+      }
+      if (advFile) {
+        proj.advReceiptUrl = await fileToDataUrl(advFile);
+        proj.advReceiptName = advFile.name;
+      }
+
+      let saveFn = window.saveProjects || null;
+      if (saveFn) await saveFn();
+      try { $('#replaceDocsModal').modal('hide'); } catch(e) {}
+      if (window.showDetails) window.showDetails(currentDetailId);
+      if (window.renderTable) window.renderTable();
+      if (window.Swal) window.Swal.fire({ icon: 'success', title: 'Documents Updated', text: 'Project documents and/or advance receipt updated successfully.', timer: 1500, showConfirmButton: false });
+    };
+
+    // Event Listeners for Drawings View
+    document.getElementById('filterText').addEventListener('keyup', renderAssemblies);
+    document.getElementById('filterPendingOnly').addEventListener('change', renderAssemblies);
+
+    // Subtasks Bulk Paste Logic
+    $(document).on('paste', '.st-paste-target', function (e) {
+      var clipboardData = e.originalEvent.clipboardData || window.clipboardData;
+      var pastedData = clipboardData.getData('Text');
+      if (!pastedData) return;
+
+      var rows = pastedData.split(/\r\n|\n|\r/);
+      if (rows[rows.length - 1] === "") rows.pop();
+
+      if (rows.length <= 1 && pastedData.indexOf('\t') === -1) return;
+
+      e.preventDefault();
+
+      var startCol = parseInt($(this).data('col'));
+      var tbody = $(this).closest('tbody');
+      var startIdx = $(this).closest('tr').index();
+
+      for (var i = 0; i < rows.length; i++) {
+        var cols = rows[i].split('\t');
+        var trs = tbody.find('tr');
+        var tr = trs.eq(startIdx + i);
+
+        if (!tr.length) {
+          addSubtaskRow();
+          trs = tbody.find('tr');
+          tr = trs.eq(startIdx + i);
+        }
+
+        let inputs = tr.find('.st-paste-target');
+        for (let j = 0; j < cols.length; j++) {
+          if (startCol + j < inputs.length) {
+            inputs.eq(startCol + j).val(cols[j].trim());
+          }
+        }
+      }
+    });
+
+    // ================================================================
+    // YDCOMPLAN EXECUTION MODULE
+    // Additive only. All new functions. Zero existing code modified.
+    // ================================================================
+    (function (w) {
+      'use strict';
+
+      // ---- Stage definitions (extend this array to add future stages) ----
+      const YDC_STAGES = [
+        { key: 'sap', label: 'SAP', icon: 'fa-barcode', color: '#6610f2', badgeCls: 'ydc-stage-badge-sap' },
+        { key: 'fabrication', label: 'Fabrication', icon: 'fa-industry', color: '#fd7e14', badgeCls: 'ydc-stage-badge-fab' },
+        { key: 'machining', label: 'Machining', icon: 'fa-cog', color: '#0dcaf0', badgeCls: 'ydc-stage-badge-mach' },
+        { key: 'arranging', label: 'Arranging', icon: 'fa-boxes-packing', color: '#20c997', badgeCls: 'ydc-stage-badge-arr' },
+        { key: 'assembly', label: 'Assembly', icon: 'fa-layer-group', color: '#198754', badgeCls: 'ydc-stage-badge-asm' }
+        // Future: purchase, qa, heatTreatment, painting, stores, dispatch, installation
+      ];
+
+      // ---- Column definitions per stage ----
+      const YDC_COLS = {
+        sap: [
+          { key: 'description', label: 'Description', type: 'text', w: '160px' },
+          { key: 'sapCode', label: 'SAP Code', type: 'text', w: '110px' },
+          { key: 'sapDescription', label: 'SAP Description', type: 'text', w: '160px' },
+          { key: 'remarks', label: 'Remarks', type: 'text', w: '140px' }
+        ],
+        fabrication: [
+          { key: 'fabricationRequired', label: 'Fab. Req.', type: 'checkbox', w: '65px' },
+          { key: 'executionType', label: 'Type', type: 'select', w: '80px', options: ['', 'FIH', 'FBOI'] },
+          { key: 'personVendor', label: 'Person / Vendor', type: 'text', w: '140px' },
+          { key: 'jobIdOrPO', label: 'Job ID / PO', type: 'text', w: '110px' },
+          { key: 'releaseDate', label: 'Release Date', type: 'date', w: '130px' },
+          { key: 'remarks', label: 'Remarks', type: 'text', w: '130px' }
+        ],
+        machining: [
+          { key: 'executionType', label: 'Type', type: 'select', w: '80px', options: ['', 'MIH', 'MBOI'] },
+          { key: 'personVendor', label: 'Person / Vendor', type: 'text', w: '140px' },
+          { key: 'jobIdOrPO', label: 'Job ID / PO', type: 'text', w: '110px' },
+          { key: 'remarks', label: 'Remarks', type: 'text', w: '130px' }
+        ],
+        arranging: [],
+        assembly: []
+      };
+
+      // ---- Module state ----
+      w._ydcState = { projId: null, loeIdx: null, stage: null };
+
+      // ---- Helpers ----
+      function pData() { return w.projectsData || []; }
+      function getP(id) { return pData().find(p => p.id == id); }
+      function isEligible(p) { return p && p.stage >= 7; }
+      function esc(v) {
+        return w.escapeHtml
+          ? w.escapeHtml(v)
+          : String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+      }
+
+      function hideAllYDC() {
+        $('#ydComplanView').hide();
+        $('#ydcProjectSummary').hide();
+        $('#ydcAssemblyView').hide();
+      }
+
+      // ---- Execution data: lazy init from Design BOM ----
+      function initExec(proj, loeIdx) {
+        if (!proj.execution) proj.execution = { assemblies: [] };
+        let found = proj.execution.assemblies.find(a => a.loeIdx === loeIdx);
+        if (found) return found;
+
+        let lr = proj.loeData && proj.loeData[loeIdx];
+        let subtasks = (lr && lr.subtasks && lr.subtasks.length) ? lr.subtasks : [];
+        let asm = { loeIdx: loeIdx, assemblyId: 'ass_' + proj.id + '_' + loeIdx };
+
+        YDC_STAGES.forEach(s => {
+          if (s.key === 'arranging' || s.key === 'assembly') { asm[s.key] = []; return; }
+          if (subtasks.length > 0) {
+            // Generate independent execution copies from Design BOM (BOM itself is never modified)
+            asm[s.key] = subtasks.map((st, i) => ({
+              componentId: 'comp_' + loeIdx + '_' + i,
+              component: st.component || '',
+              qty: st.qty || '',
+              material: st.material || '',
+              status: 'pending'
+            }));
+          } else {
+            // Bought-out assembly: one blank row so Add Row is available
+            asm[s.key] = [{ componentId: 'comp_' + loeIdx + '_' + Date.now(), component: '', qty: '', material: '', status: 'pending' }];
+          }
+        });
+
+        proj.execution.assemblies.push(asm);
+        return asm;
+      }
+
+      function getExec(proj, loeIdx) {
+        let found = proj.execution && proj.execution.assemblies.find(a => a.loeIdx === loeIdx);
+        return found || initExec(proj, loeIdx);
+      }
+
+      // ---- Stage / status helpers ----
+      function stageStatus(asm, key) {
+        let rows = asm[key] || [];
+        if (!rows.length) return 'pending';
+        let done = rows.filter(r => r.status === 'submitted').length;
+        if (!done) return 'pending';
+        return done === rows.length ? 'complete' : 'in_progress';
+      }
+
+      function statusBadge(s) {
+        return {
+          pending: '<span class="badge bg-secondary" style="font-size:0.7rem;">Pending</span>',
+          in_progress: '<span class="badge bg-warning text-dark" style="font-size:0.7rem;"><i class="fa fa-spinner fa-spin me-1"></i>In Progress</span>',
+          complete: '<span class="badge bg-success" style="font-size:0.7rem;"><i class="fa fa-check me-1"></i>Complete</span>'
+        }[s] || '<span class="badge bg-secondary" style="font-size:0.7rem;">Pending</span>';
+      }
+
+      // ================================================================
+      // VIEW 1: YDComplan Projects List
+      // ================================================================
+      w.showYDComplanView = function (projId) {
+        $('#dashboardView').hide();
+        $('#drawingsView').hide();
+        hideAllYDC();
+        $('#ydComplanView').fadeIn(200);
+        renderProjGrid();
+        if (projId) setTimeout(() => w.openYDComplanProject(projId), 200);
+      };
+
+      function renderProjGrid() {
+        let eligs = pData().filter(isEligible);
+        let html = '';
+        if (!eligs.length) {
+          html = '<div class="col-12"><div class="alert alert-info"><i class="fa fa-info-circle me-2"></i>No projects have an LOE uploaded yet. Projects appear here after Stage 7 (LOE upload).</div></div>';
+        } else {
+          eligs.forEach(proj => {
+            let totalAsm = (proj.loeData || []).length;
+            let totalComp = 0, doneComp = 0;
+            (proj.loeData || []).forEach((lr, idx) => {
+              let a = proj.execution && proj.execution.assemblies.find(x => x.loeIdx === idx);
+              let comps = a ? (a.sap || []) : (lr.subtasks || []);
+              totalComp += comps.length;
+              if (a) doneComp += comps.filter(c => c.status === 'submitted').length;
+            });
+            let pct = totalComp > 0 ? Math.round(doneComp / totalComp * 100) : 0;
+
+            html += `
+              <div class="col-12 col-md-6 col-xl-4">
+                <div class="card shadow-sm ydc-proj-card border h-100" onclick="openYDComplanProject('${proj.id}')" style="border-radius:10px;">
+                  <div class="card-body p-3">
+                    <div class="d-flex align-items-start mb-2">
+                      <div class="bg-dark text-white rounded px-2 py-1 me-2 flex-shrink-0 text-center" style="min-width:60px;">
+                        <div style="font-size:9px;color:#9ca3af;line-height:1.2;">PROJ</div>
+                        <strong class="fs-6 lh-1">${esc(proj.projNo || 'TBD')}</strong>
+                      </div>
+                      <div class="flex-grow-1 overflow-hidden">
+                        <div class="fw-bold text-dark text-truncate">${esc(proj.client || '')}</div>
+                        <div class="text-muted small">${esc(proj.site || '')}</div>
+                      </div>
+                      <i class="fa fa-chevron-right text-muted ms-2 mt-1"></i>
+                    </div>
+                    <div class="text-muted text-truncate mb-2" style="font-size:0.76rem;">${esc(proj.machine || '')}</div>
+                    <div class="row g-1 text-center mb-2">
+                      <div class="col-4"><div class="fw-bold fs-5">${totalAsm}</div><div style="font-size:0.68rem;color:#6b7280;text-transform:uppercase;">Assemblies</div></div>
+                      <div class="col-4"><div class="fw-bold fs-5 text-success">${doneComp}</div><div style="font-size:0.68rem;color:#6b7280;text-transform:uppercase;">Done</div></div>
+                      <div class="col-4"><div class="fw-bold fs-5 text-warning">${totalComp - doneComp}</div><div style="font-size:0.68rem;color:#6b7280;text-transform:uppercase;">Pending</div></div>
+                    </div>
+                    <div class="ydc-progress-bar-wrap mb-1"><div class="ydc-progress-bar-fill" style="width:${pct}%"></div></div>
+                    <div class="text-muted" style="font-size:0.7rem;">${pct}% complete &nbsp;·&nbsp; PM: ${esc(proj.pm || 'TBD')}</div>
+                  </div>
+                </div>
+              </div>`;
+          });
+        }
+        document.getElementById('ydcProjectsGrid').innerHTML = html;
+      }
+
+      // ================================================================
+      // VIEW 2: Project Summary
+      // ================================================================
+      w.openYDComplanProject = function (projId) {
+        let proj = getP(projId);
+        if (!proj) return;
+        w._ydcState.projId = projId;
+        w._ydcState.loeIdx = null;
+        w._ydcState.stage = null;
+
+        hideAllYDC();
+        $('#ydcProjectSummary').fadeIn(200);
+
+        document.getElementById('ydcBreadProject').textContent = 'Project ' + (proj.projNo || 'TBD');
+        document.getElementById('ydcProjTitle').innerHTML =
+          '<i class="fa fa-project-diagram me-2"></i>' + esc(proj.client || '') + ' — ' + esc(proj.projNo || 'TBD');
+        document.getElementById('ydcProjMeta').innerHTML =
+          '<strong>PM:</strong> ' + esc(proj.pm || 'TBD') + '&nbsp;&nbsp;|&nbsp;&nbsp;' +
+          '<strong>Machine:</strong> ' + esc(proj.machine || '') + '&nbsp;&nbsp;|&nbsp;&nbsp;' +
+          '<strong>Site:</strong> ' + esc(proj.site || '');
+
+        // Stats
+        let totalAsm = (proj.loeData || []).length;
+        let totalComp = 0, doneComp = 0;
+        (proj.loeData || []).forEach((lr, idx) => {
+          let a = proj.execution && proj.execution.assemblies.find(x => x.loeIdx === idx);
+          let comps = a ? (a.sap || []) : (lr.subtasks || []);
+          totalComp += comps.length;
+          if (a) doneComp += comps.filter(c => c.status === 'submitted').length;
+        });
+        document.getElementById('ydcStatAssemblies').textContent = totalAsm;
+        document.getElementById('ydcStatComponents').textContent = totalComp;
+        document.getElementById('ydcStatCompleted').textContent = doneComp;
+        document.getElementById('ydcStatPending').textContent = totalComp - doneComp;
+
+        renderAsmGrid(proj);
+      };
+
+      w.ydcBackToProjects = function () {
+        if (w._ydcState.projId != null) w.openYDComplanProject(w._ydcState.projId);
+        else w.showYDComplanView();
+      };
+
+      function renderAsmGrid(proj) {
+        let loeData = proj.loeData || [];
+        let html = '';
+        if (!loeData.length) {
+          html = '<div class="col-12"><div class="alert alert-warning"><i class="fa fa-exclamation-triangle me-2"></i>No assemblies found in LOE data.</div></div>';
+        } else {
+          loeData.forEach((lr, idx) => {
+            let a = proj.execution && proj.execution.assemblies.find(x => x.loeIdx === idx);
+            let comps = a ? (a.sap || []) : (lr.subtasks || []);
+            let total = comps.length;
+            let done = a ? comps.filter(c => c.status === 'submitted').length : 0;
+            let pct = total > 0 ? Math.round(done / total * 100) : 0;
+
+            // Dominant stage badge
+            let domBadge = '<span class="badge bg-secondary" style="font-size:0.7rem;">Not Started</span>';
+            if (a) {
+              for (let si = YDC_STAGES.length - 1; si >= 0; si--) {
+                let ss = stageStatus(a, YDC_STAGES[si].key);
+                if (ss !== 'pending') {
+                  domBadge = `<span class="badge ${YDC_STAGES[si].badgeCls}" style="font-size:0.7rem;">${YDC_STAGES[si].label}: ${ss === 'complete' ? 'Complete' : 'In Progress'}</span>`;
+                  break;
+                }
+              }
+            }
+
+            html += `
+              <div class="col-12 col-md-6 col-xl-4">
+                <div class="card shadow-sm ydc-assembly-card border h-100" onclick="openYDComplanAssembly('${proj.id}', ${idx})" style="border-radius:10px;">
+                  <div class="card-body p-3">
+                    <div class="d-flex align-items-start mb-2">
+                      <div class="bg-primary text-white rounded px-2 py-1 me-2 flex-shrink-0 text-center" style="min-width:38px;">
+                        <div style="font-size:9px;color:rgba(255,255,255,0.65);line-height:1.2;">SR</div>
+                        <strong style="font-size:0.9rem;line-height:1;">${esc(lr.srNo || (idx + 1))}</strong>
+                      </div>
+                      <div class="flex-grow-1 overflow-hidden">
+                        <div class="fw-bold text-dark text-truncate" style="font-size:0.86rem;">${esc(lr.assemblyName || 'Assembly ' + (idx + 1))}</div>
+                        <div class="text-muted" style="font-size:0.74rem;">${esc(lr.drawingNo || '—')}</div>
+                      </div>
+                      <i class="fa fa-chevron-right text-muted ms-2 mt-1"></i>
+                    </div>
+                    <div class="mb-2">${domBadge}</div>
+                    <div class="d-flex justify-content-between mb-1">
+                      <small class="text-muted">${done} / ${total} components</small>
+                      <small class="fw-bold text-primary">${pct}%</small>
+                    </div>
+                    <div class="ydc-progress-bar-wrap"><div class="ydc-progress-bar-fill" style="width:${pct}%"></div></div>
+                  </div>
+                </div>
+              </div>`;
+          });
+        }
+        document.getElementById('ydcAssemblyGrid').innerHTML = html;
+      }
+
+      // ================================================================
+      // VIEW 3: Assembly Detail + Workflow
+      // ================================================================
+      w.openYDComplanAssembly = function (projId, loeIdx) {
+        let proj = getP(projId);
+        if (!proj) return;
+        w._ydcState.projId = projId;
+        w._ydcState.loeIdx = loeIdx;
+        w._ydcState.stage = null;
+
+        initExec(proj, loeIdx);   // ensure execution data exists
+
+        hideAllYDC();
+        $('#ydcAssemblyView').fadeIn(200);
+
+        let lr = proj.loeData && proj.loeData[loeIdx];
+        let asmName = lr ? lr.assemblyName : 'Assembly';
+        let drawNo = lr ? (lr.drawingNo || '—') : '—';
+
+        document.getElementById('ydcAsmBreadProject').textContent = 'Project ' + (proj.projNo || 'TBD');
+        document.getElementById('ydcAsmBreadAsm').textContent = asmName;
+        document.getElementById('ydcAsmTitle').innerHTML = '<i class="fa fa-cubes me-2"></i>' + esc(asmName);
+        document.getElementById('ydcAsmMeta').innerHTML =
+          '<strong>Drawing:</strong> ' + esc(drawNo) + '&nbsp;&nbsp;|&nbsp;&nbsp;' +
+          '<strong>Project:</strong> ' + esc(proj.projNo || 'TBD') + '&nbsp;&nbsp;|&nbsp;&nbsp;' +
+          '<strong>Client:</strong> ' + esc(proj.client || '');
+
+        renderAsmStatsStrip(proj, loeIdx);
+        renderWorkflowCards(proj, loeIdx);
+        renderAllPanels(proj, loeIdx);
+      };
+
+      function renderAsmStatsStrip(proj, loeIdx) {
+        let a = getExec(proj, loeIdx);
+        let html = '';
+        YDC_STAGES.forEach(s => {
+          let rows = a[s.key] || [];
+          let done = rows.filter(r => r.status === 'submitted').length;
+          let t = rows.length;
+          let pct = t > 0 ? Math.round(done / t * 100) : 0;
+          let ss = stageStatus(a, s.key);
+          html += `
+            <div class="col-6 col-md-4 col-xl-2">
+              <div class="ydc-stat-card text-center py-2">
+                <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.5px;color:#6b7280;margin-bottom:4px;">${s.label}</div>
+                ${statusBadge(ss)}
+                <div class="ydc-progress-bar-wrap mx-2 mt-2"><div class="ydc-progress-bar-fill" style="width:${pct}%"></div></div>
+                <div style="font-size:0.68rem;color:#9ca3af;margin-top:3px;">${done}/${t}</div>
+              </div>
+            </div>`;
+        });
+        document.getElementById('ydcAsmStats').innerHTML = html;
+      }
+
+      function renderWorkflowCards(proj, loeIdx) {
+        let a = getExec(proj, loeIdx);
+        let activeStage = w._ydcState.stage;
+        let html = '';
+        YDC_STAGES.forEach(s => {
+          let rows = a[s.key] || [];
+          let done = rows.filter(r => r.status === 'submitted').length;
+          let t = rows.length;
+          let pct = t > 0 ? Math.round(done / t * 100) : 0;
+          let ss = stageStatus(a, s.key);
+          let isAct = activeStage === s.key;
+          html += `
+            <div class="col-6 col-md-4 col-xl-2">
+              <div class="card shadow-sm ydc-workflow-card text-center p-3 h-100 ${isAct ? 'active-stage' : ''}"
+                   onclick="openYDCStagePanel('${proj.id}', ${loeIdx}, '${s.key}')"
+                   style="border-radius:10px;min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                <i class="fa ${s.icon} mb-2" style="font-size:1.55rem;color:${s.color};"></i>
+                <div class="fw-bold mb-1" style="font-size:0.83rem;">${s.label}</div>
+                ${statusBadge(ss)}
+                <div class="ydc-progress-bar-wrap mt-2 w-100 px-1"><div class="ydc-progress-bar-fill" style="width:${pct}%"></div></div>
+                <div class="text-muted mt-1" style="font-size:0.7rem;">${done}/${t}</div>
+              </div>
+            </div>`;
+        });
+        document.getElementById('ydcWorkflowCards').innerHTML = html;
+      }
+
+      function renderAllPanels(proj, loeIdx) {
+        let activeStage = w._ydcState.stage;
+        let a = getExec(proj, loeIdx);
+        let html = '';
+        YDC_STAGES.forEach(s => {
+          let isOpen = activeStage === s.key;
+          html += `
+            <div class="ydc-stage-panel${isOpen ? ' open' : ''}" id="ydcPanel_${s.key}">
+              <div class="ydc-panel-header">
+                <span><i class="fa ${s.icon} me-2"></i>${s.label} — Execution Table</span>
+                <button class="btn btn-sm btn-light py-0 px-2" onclick="ydcClosePanel()"><i class="fa fa-times"></i></button>
+              </div>
+              <div class="p-3" id="ydcPanelBody_${s.key}">${buildStageTable(proj, loeIdx, s.key, a)}</div>
+            </div>`;
+        });
+        document.getElementById('ydcStagePanels').innerHTML = html;
+      }
+
+      // ================================================================
+      // Stage panel open / close
+      // ================================================================
+      w.openYDCStagePanel = function (projId, loeIdx, stageName) {
+        w._ydcState.stage = stageName;
+        let proj = getP(projId);
+        if (!proj) return;
+        renderWorkflowCards(proj, loeIdx);
+        renderAllPanels(proj, loeIdx);
+        let panel = document.getElementById('ydcPanel_' + stageName);
+        if (panel) setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 60);
+      };
+
+      w.ydcClosePanel = function () {
+        w._ydcState.stage = null;
+        let s = w._ydcState;
+        if (s.projId != null && s.loeIdx != null) {
+          let proj = getP(s.projId);
+          if (proj) { renderWorkflowCards(proj, s.loeIdx); renderAllPanels(proj, s.loeIdx); }
+        }
+      };
+
+      // ================================================================
+      // Stage execution table builder
+      // ================================================================
+      function buildStageTable(proj, loeIdx, stageName, asm) {
+        let cols = YDC_COLS[stageName] || [];
+        let rows = asm[stageName] || [];
+        let lr = proj.loeData && proj.loeData[loeIdx];
+        let isBoughtOut = !(lr && lr.subtasks && lr.subtasks.length);
+
+        if ((stageName === 'arranging' || stageName === 'assembly') && !rows.length) {
+          return `<div class="text-center text-muted py-4"><i class="fa fa-hourglass-half me-2 opacity-50"></i>Coming soon — this stage will be enabled after upstream stages are configured.</div>`;
+        }
+
+        let hasQty = (stageName === 'fabrication' || stageName === 'machining');
+
+        let thead = '<th style="width:36px;text-align:center;">#</th>';
+        thead += '<th style="min-width:150px;">Component</th>';
+        if (hasQty) { thead += '<th style="width:60px;">Qty</th><th style="width:100px;">Material</th>'; }
+        cols.forEach(c => { thead += `<th style="width:${c.w || '120px'};">${c.label}</th>`; });
+        thead += '<th style="width:65px;">Save</th><th style="width:78px;">Submit</th>';
+
+        let tbody = '';
+        rows.forEach((row, i) => {
+          let submitted = row.status === 'submitted';
+          let rowCls = submitted ? 'ydc-submitted-row' : '';
+          let cells = '';
+          cols.forEach(c => {
+            let v = row[c.key] != null ? row[c.key] : '';
+            if (c.type === 'text') {
+              cells += `<td><input type="text" class="form-control form-control-sm ydc-inp" data-field="${c.key}" value="${esc(v)}"${submitted ? ' readonly' : ''}></td>`;
+            } else if (c.type === 'date') {
+              cells += `<td><input type="date" class="form-control form-control-sm ydc-inp" data-field="${c.key}" value="${esc(v)}"${submitted ? ' readonly' : ''}></td>`;
+            } else if (c.type === 'select') {
+              let opts = (c.options || []).map(o => `<option value="${o}"${v === o ? ' selected' : ''}>${o || '—'}</option>`).join('');
+              cells += `<td><select class="form-select form-select-sm ydc-inp" data-field="${c.key}"${submitted ? ' disabled' : ''}>${opts}</select></td>`;
+            } else if (c.type === 'checkbox') {
+              cells += `<td style="text-align:center;"><input type="checkbox" class="form-check-input ydc-inp" data-field="${c.key}"${v ? ' checked' : ''}${submitted ? ' disabled' : ''}></td>`;
+            }
+          });
+
+          let saveBtn = submitted
+            ? `<button class="ydc-save-btn" disabled><i class="fa fa-check text-success"></i></button>`
+            : `<button class="ydc-save-btn" onclick="ydcSaveRow('${proj.id}',${loeIdx},'${stageName}','${row.componentId}',this)"><i class="fa fa-floppy-disk me-1"></i>Save</button>`;
+          let subBtn = submitted
+            ? `<span class="badge bg-success" style="font-size:0.72rem;padding:4px 7px;"><i class="fa fa-check me-1"></i>Done</span>`
+            : `<button class="ydc-submit-btn" onclick="ydcSubmitRow('${proj.id}',${loeIdx},'${stageName}','${row.componentId}',this)"><i class="fa fa-paper-plane me-1"></i>Submit</button>`;
+
+          tbody += `
+            <tr class="${rowCls}" id="ydcRow_${row.componentId}">
+              <td style="text-align:center;color:#6c757d;font-weight:600;font-size:0.76rem;">${i + 1}</td>
+              <td>
+                <span class="fw-bold" style="font-size:0.82rem;">${esc(row.component) || '<span class="text-muted fst-italic">—</span>'}</span>
+                ${isBoughtOut ? '<br><small class="text-muted fst-italic" style="font-size:0.7rem;">Bought-Out</small>' : ''}
+              </td>
+              ${hasQty ? `<td style="text-align:center;" class="text-muted">${esc(row.qty || '—')}</td><td class="text-muted">${esc(row.material || '—')}</td>` : ''}
+              ${cells}
+              <td>${saveBtn}</td>
+              <td>${subBtn}</td>
+            </tr>`;
+        });
+
+        let addRowSection = (isBoughtOut && stageName !== 'arranging' && stageName !== 'assembly')
+          ? `<div class="p-2 border-top bg-light text-end"><button class="btn btn-sm btn-outline-primary" onclick="ydcAddRow('${proj.id}',${loeIdx},'${stageName}')"><i class="fa fa-plus me-1"></i>Add Component Row</button></div>`
+          : '';
+
+        return `
+          <div class="table-responsive" style="max-height:420px;overflow-y:auto;">
+            <table class="table table-bordered table-hover ydc-table mb-0" style="min-width:680px;">
+              <thead><tr>${thead}</tr></thead>
+              <tbody>${tbody || '<tr><td colspan="20" class="text-center text-muted py-4"><i class="fa fa-folder-open me-2 opacity-50"></i>No components. Use Add Row below.</td></tr>'}</tbody>
+            </table>
+          </div>${addRowSection}`;
+      }
+
+      // ================================================================
+      // Save / Submit / Add Row
+      // ================================================================
+      function collectFromDOM(componentId, row) {
+        let tr = document.getElementById('ydcRow_' + componentId);
+        if (!tr) return;
+        tr.querySelectorAll('.ydc-inp').forEach(inp => {
+          let f = inp.dataset.field;
+          if (!f) return;
+          row[f] = inp.type === 'checkbox' ? inp.checked : inp.value;
+        });
+      }
+
+      w.ydcSaveRow = async function (projId, loeIdx, stageName, componentId, btn) {
+        let proj = getP(projId);
+        if (!proj) return;
+        let a = getExec(proj, loeIdx);
+        let row = (a[stageName] || []).find(r => r.componentId === componentId);
+        if (!row) return;
+        collectFromDOM(componentId, row);
+        if (row.status !== 'submitted') row.status = 'saved';
+        if (w.saveProjects) await w.saveProjects();
+        refreshStats(proj, loeIdx);
+        if (btn) {
+          let orig = btn.innerHTML;
+          btn.innerHTML = '<i class="fa fa-check text-success me-1"></i>Saved!';
+          btn.disabled = true;
+          setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 1600);
+        }
+      };
+
+      w.ydcSubmitRow = async function (projId, loeIdx, stageName, componentId, btn) {
+        let proj = getP(projId);
+        if (!proj) return;
+        let a = getExec(proj, loeIdx);
+        let row = (a[stageName] || []).find(r => r.componentId === componentId);
+        if (!row) return;
+        collectFromDOM(componentId, row);
+        row.status = 'submitted';
+        row.submittedAt = new Date().toISOString();
+        if (w.saveProjects) await w.saveProjects();
+
+        // Visually update row without re-render (keeps other open inputs stable)
+        let tr = document.getElementById('ydcRow_' + componentId);
+        if (tr) {
+          tr.classList.add('ydc-submitted-row');
+          tr.querySelectorAll('input, select').forEach(el => { el.disabled = true; });
+          let tds = tr.querySelectorAll('td');
+          let n = tds.length;
+          if (n >= 2) {
+            tds[n - 2].innerHTML = '<button class="ydc-save-btn" disabled><i class="fa fa-check text-success"></i></button>';
+            tds[n - 1].innerHTML = '<span class="badge bg-success" style="font-size:0.72rem;padding:4px 7px;"><i class="fa fa-check me-1"></i>Done</span>';
+          }
+        }
+        refreshStats(proj, loeIdx);
+        if (w.Swal) w.Swal.fire({ icon: 'success', title: 'Component Submitted', text: 'Component marked ready for next stage.', timer: 1500, showConfirmButton: false });
+      };
+
+      w.ydcAddRow = async function (projId, loeIdx, stageName) {
+        let proj = getP(projId);
+        if (!proj) return;
+        let a = getExec(proj, loeIdx);
+        if (!a[stageName]) a[stageName] = [];
+        a[stageName].push({ componentId: 'comp_' + loeIdx + '_' + Date.now(), component: '', qty: '', material: '', status: 'pending' });
+        if (w.saveProjects) await w.saveProjects();
+        w.openYDCStagePanel(projId, loeIdx, stageName);
+      };
+
+      function refreshStats(proj, loeIdx) {
+        if (document.getElementById('ydcAsmStats')) renderAsmStatsStrip(proj, loeIdx);
+      }
+
+      // ================================================================
+      // Patch: wrap existing view-switchers to also hide YDC views
+      // ================================================================
+      let _origDashView = w.showDashboardView;
+      w.showDashboardView = function () {
+        hideAllYDC();
+        if (_origDashView) _origDashView.call(this);
+        else { $('#drawingsView').hide(); $('#dashboardView').fadeIn(); if (w.renderTable) w.renderTable(); }
+      };
+
+      let _origDrawView = w.showDrawingsView;
+      w.showDrawingsView = function () {
+        hideAllYDC();
+        if (_origDrawView) _origDrawView.call(this);
+      };
+
+      // ---- Expose on window so HTML onclick attributes can reach them ----
+      w.openYDComplanProject = w.openYDComplanProject;   // already set
+      w.openYDComplanAssembly = w.openYDComplanAssembly;  // already set
+
+    })(window);
+  </script>
+</body>
+
+</html>
