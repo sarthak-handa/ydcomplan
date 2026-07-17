@@ -1154,7 +1154,7 @@
               </button>
             </div>
           </div>
-          <div class="row g-3" id="ydcProjectsGrid">
+          <div class="mt-2" id="ydcProjectsGrid">
             <!-- Injected by JS -->
           </div>
         </div>
@@ -1214,8 +1214,8 @@
               </div>
             </div>
           </div>
-          <!-- Assembly Cards -->
-          <div class="row g-3" id="ydcAssemblyGrid">
+          <!-- Assembly Table Container -->
+          <div class="mt-2" id="ydcAssemblyGrid">
             <!-- Injected by JS -->
           </div>
         </div>
@@ -1685,9 +1685,6 @@
               <div class="col-12 mt-2 pt-2 border-top" id="detFilesContainer">
                 <strong>Attached Documents:</strong>
                 <div class="mt-2 d-flex flex-wrap gap-2" id="detFilesList"></div>
-                <div class="mt-3">
-                  <button type="button" class="btn btn-sm btn-outline-primary" onclick="openReplaceDocsModal()"><i class="fa fa-upload me-1"></i>Replace / Upload Documents (Tech Scope, PO, Advance Receipt)</button>
-                </div>
               </div>
             </div>
           </div>
@@ -2455,6 +2452,14 @@
       window.saveProjects = saveProjects;
 
       function fileToDataUrl(file) {
+        return new Promise((resolve) => {
+          if (!file) return resolve(null);
+          var reader = new FileReader();
+          reader.onload = function (e) { resolve(e.target.result); };
+          reader.readAsDataURL(file);
+        });
+      }
+
       window.openProjectFileFromId = function (projId, field) {
         let proj = getProject(projId);
         if (!proj) return;
@@ -2559,6 +2564,12 @@
             proj.advReceiptUrl = dataUrl;
             proj.advReceiptName = file.name;
             proj.hasAdvanceReceipt = true;
+            if (proj.stage === 3) {
+              proj.stage = 4; // PENDING_PM_ASSIGNMENT
+              proj.owner = "COO/VP";
+              proj.timeline = proj.timeline || {};
+              proj.timeline[3] = new Date().toLocaleDateString();
+            }
           }
           
           if (typeof saveProjects === 'function') await saveProjects();
@@ -2757,7 +2768,7 @@
           if (isSkippedFinance) {
             item.addClass('completed opacity-50');
             item.find('.step-counter').html('<i class="fa fa-share text-secondary"></i>').css({ 'background': '#e9ecef', 'border-color': '#dee2e6' });
-          } else if (s > step.s || s === 10) {
+          } else if (s > step.s || s === 10 || (step.s === 3 && (proj.hasAdvanceReceipt || proj.advanceReceiptUrl || proj.advReceiptUrl))) {
             item.addClass('completed').find('.step-counter').html('<i class="fa fa-check"></i>').removeAttr('style');
           } else if (s === step.s || (s === 1.5 && step.s === 1)) {
             item.addClass('active').find('.step-counter').html('<i class="fa fa-spinner fa-spin"></i>').removeAttr('style');
@@ -4120,49 +4131,75 @@
 
       function renderProjGrid() {
         let eligs = pData().filter(isEligible);
-        let html = '';
         if (!eligs.length) {
-          html = '<div class="col-12"><div class="alert alert-info"><i class="fa fa-info-circle me-2"></i>No projects have an LOE uploaded yet. Projects appear here after Stage 7 (LOE upload).</div></div>';
-        } else {
-          eligs.forEach(proj => {
-            let totalAsm = (proj.loeData || []).length;
-            let totalComp = 0, doneComp = 0;
-            (proj.loeData || []).forEach((lr, idx) => {
-              let a = proj.execution && proj.execution.assemblies.find(x => x.loeIdx === idx);
-              let comps = a ? (a.sap || []) : (lr.subtasks || []);
-              totalComp += comps.length;
-              if (a) doneComp += comps.filter(c => c.status === 'submitted').length;
-            });
-            let pct = totalComp > 0 ? Math.round(doneComp / totalComp * 100) : 0;
-
-            html += `
-              <div class="col-12 col-md-6 col-xl-4">
-                <div class="card shadow-sm ydc-proj-card border h-100" onclick="openYDComplanProject('${proj.id}')" style="border-radius:10px;">
-                  <div class="card-body p-3">
-                    <div class="d-flex align-items-start mb-2">
-                      <div class="bg-dark text-white rounded px-2 py-1 me-2 flex-shrink-0 text-center" style="min-width:60px;">
-                        <div style="font-size:9px;color:#9ca3af;line-height:1.2;">PROJ</div>
-                        <strong class="fs-6 lh-1">${esc(proj.projNo || 'TBD')}</strong>
-                      </div>
-                      <div class="flex-grow-1 overflow-hidden">
-                        <div class="fw-bold text-dark text-truncate">${esc(proj.client || '')}</div>
-                        <div class="text-muted small">${esc(proj.site || '')}</div>
-                      </div>
-                      <i class="fa fa-chevron-right text-muted ms-2 mt-1"></i>
-                    </div>
-                    <div class="text-muted text-truncate mb-2" style="font-size:0.76rem;">${esc(proj.machine || '')}</div>
-                    <div class="row g-1 text-center mb-2">
-                      <div class="col-4"><div class="fw-bold fs-5">${totalAsm}</div><div style="font-size:0.68rem;color:#6b7280;text-transform:uppercase;">Assemblies</div></div>
-                      <div class="col-4"><div class="fw-bold fs-5 text-success">${doneComp}</div><div style="font-size:0.68rem;color:#6b7280;text-transform:uppercase;">Done</div></div>
-                      <div class="col-4"><div class="fw-bold fs-5 text-warning">${totalComp - doneComp}</div><div style="font-size:0.68rem;color:#6b7280;text-transform:uppercase;">Pending</div></div>
-                    </div>
-                    <div class="ydc-progress-bar-wrap mb-1"><div class="ydc-progress-bar-fill" style="width:${pct}%"></div></div>
-                    <div class="text-muted" style="font-size:0.7rem;">${pct}% complete &nbsp;·&nbsp; PM: ${esc(proj.pm || 'TBD')}</div>
-                  </div>
-                </div>
-              </div>`;
-          });
+          document.getElementById('ydcProjectsGrid').innerHTML = '<div class="alert alert-info"><i class="fa fa-info-circle me-2"></i>No projects have an LOE uploaded yet. Projects appear here after Stage 7 (LOE upload).</div>';
+          return;
         }
+
+        let html = `
+          <div class="table-responsive">
+            <table class="table table-hover table-bordered mb-0 align-middle shadow-sm bg-white" style="border-radius: 8px; overflow: hidden;">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 120px; text-align: center;">Project No.</th>
+                  <th>Client & Site</th>
+                  <th>Machine / Description</th>
+                  <th style="width: 180px;">Project Manager</th>
+                  <th style="width: 120px; text-align: center;">Assemblies</th>
+                  <th style="width: 200px; text-align: center;">Execution Progress</th>
+                  <th style="width: 130px; text-align: center;">Action</th>
+                </tr>
+              </thead>
+              <tbody>`;
+
+        eligs.forEach(proj => {
+          let totalAsm = (proj.loeData || []).length;
+          let totalComp = 0, doneComp = 0;
+          (proj.loeData || []).forEach((lr, idx) => {
+            let a = proj.execution && proj.execution.assemblies.find(x => x.loeIdx === idx);
+            let comps = a ? (a.sap || []) : (lr.subtasks || []);
+            totalComp += comps.length;
+            if (a) doneComp += comps.filter(c => c.status === 'submitted').length;
+          });
+          let pct = totalComp > 0 ? Math.round(doneComp / totalComp * 100) : 0;
+
+          html += `
+            <tr onclick="openYDComplanProject('${proj.id}')" style="cursor: pointer; transition: background-color 0.15s;" title="Click to open execution assemblies for Project ${esc(proj.projNo || 'TBD')}">
+              <td class="text-center fw-bold text-primary fs-6">${esc(proj.projNo || 'TBD')}</td>
+              <td>
+                <div class="fw-bold text-dark">${esc(proj.client || '—')}</div>
+                <div class="text-muted small"><i class="fa fa-map-marker-alt me-1 text-secondary"></i>${esc(proj.site || '—')}</div>
+              </td>
+              <td>
+                <div class="text-dark small">${esc(proj.machine || '—')}</div>
+              </td>
+              <td>
+                <span class="badge bg-light text-dark border px-2 py-1 fs-6"><i class="fa fa-user me-1 text-muted"></i>${esc(proj.pm || 'TBD')}</span>
+              </td>
+              <td class="text-center">
+                <span class="fw-bold fs-6">${totalAsm}</span>
+                <div class="text-muted" style="font-size: 0.7rem;">assemblies</div>
+              </td>
+              <td class="text-center">
+                <div class="d-flex justify-content-between mb-1 px-2" style="font-size: 0.75rem;">
+                  <span class="text-success fw-bold">${doneComp} done</span>
+                  <span class="text-muted">${totalComp} comps</span>
+                </div>
+                <div class="ydc-progress-bar-wrap mx-auto" style="max-width: 160px;"><div class="ydc-progress-bar-fill" style="width:${pct}%"></div></div>
+                <small class="fw-bold text-primary" style="font-size: 0.72rem;">${pct}% Complete</small>
+              </td>
+              <td class="text-center">
+                <button type="button" class="btn btn-sm btn-outline-primary fw-bold" onclick="event.stopPropagation(); openYDComplanProject('${proj.id}')">
+                  Open List <i class="fa fa-arrow-right ms-1"></i>
+                </button>
+              </td>
+            </tr>`;
+        });
+
+        html += `
+              </tbody>
+            </table>
+          </div>`;
         document.getElementById('ydcProjectsGrid').innerHTML = html;
       }
 
@@ -4211,55 +4248,80 @@
 
       function renderAsmGrid(proj) {
         let loeData = proj.loeData || [];
-        let html = '';
         if (!loeData.length) {
-          html = '<div class="col-12"><div class="alert alert-warning"><i class="fa fa-exclamation-triangle me-2"></i>No assemblies found in LOE data.</div></div>';
-        } else {
-          loeData.forEach((lr, idx) => {
-            let a = proj.execution && proj.execution.assemblies.find(x => x.loeIdx === idx);
-            let comps = a ? (a.sap || []) : (lr.subtasks || []);
-            let total = comps.length;
-            let done = a ? comps.filter(c => c.status === 'submitted').length : 0;
-            let pct = total > 0 ? Math.round(done / total * 100) : 0;
+          document.getElementById('ydcAssemblyGrid').innerHTML = '<div class="alert alert-warning"><i class="fa fa-exclamation-triangle me-2"></i>No assemblies found in LOE data.</div>';
+          return;
+        }
 
-            // Dominant stage badge
-            let domBadge = '<span class="badge bg-secondary" style="font-size:0.7rem;">Not Started</span>';
-            if (a) {
-              for (let si = YDC_STAGES.length - 1; si >= 0; si--) {
-                let ss = stageStatus(a, YDC_STAGES[si].key);
-                if (ss !== 'pending') {
-                  domBadge = `<span class="badge ${YDC_STAGES[si].badgeCls}" style="font-size:0.7rem;">${YDC_STAGES[si].label}: ${ss === 'complete' ? 'Complete' : 'In Progress'}</span>`;
-                  break;
-                }
+        let html = `
+          <div class="table-responsive">
+            <table class="table table-hover table-bordered mb-0 align-middle shadow-sm bg-white" style="border-radius: 8px; overflow: hidden;">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 130px; text-align: center;">Serial Number</th>
+                  <th>Assembly / Subassembly</th>
+                  <th style="width: 170px; text-align: center;">Dispatch Week</th>
+                  <th style="width: 180px; text-align: center;">Execution Status</th>
+                  <th style="width: 120px; text-align: center;">Action</th>
+                </tr>
+              </thead>
+              <tbody>`;
+
+        loeData.forEach((lr, idx) => {
+          let a = proj.execution && proj.execution.assemblies.find(x => x.loeIdx === idx);
+          let comps = a ? (a.sap || []) : (lr.subtasks || []);
+          let total = comps.length;
+          let done = a ? comps.filter(c => c.status === 'submitted').length : 0;
+          let pct = total > 0 ? Math.round(done / total * 100) : 0;
+
+          // Dominant stage badge
+          let domBadge = '<span class="badge bg-secondary" style="font-size:0.75rem;">Not Started</span>';
+          if (a) {
+            for (let si = YDC_STAGES.length - 1; si >= 0; si--) {
+              let ss = stageStatus(a, YDC_STAGES[si].key);
+              if (ss !== 'pending') {
+                domBadge = `<span class="badge ${YDC_STAGES[si].badgeCls}" style="font-size:0.75rem;">${YDC_STAGES[si].label}: ${ss === 'complete' ? 'Complete' : 'In Progress'}</span>`;
+                break;
               }
             }
+          }
 
-            html += `
-              <div class="col-12 col-md-6 col-xl-4">
-                <div class="card shadow-sm ydc-assembly-card border h-100" onclick="openYDComplanAssembly('${proj.id}', ${idx})" style="border-radius:10px;">
-                  <div class="card-body p-3">
-                    <div class="d-flex align-items-start mb-2">
-                      <div class="bg-primary text-white rounded px-2 py-1 me-2 flex-shrink-0 text-center" style="min-width:38px;">
-                        <div style="font-size:9px;color:rgba(255,255,255,0.65);line-height:1.2;">SR</div>
-                        <strong style="font-size:0.9rem;line-height:1;">${esc(lr.srNo || (idx + 1))}</strong>
-                      </div>
-                      <div class="flex-grow-1 overflow-hidden">
-                        <div class="fw-bold text-dark text-truncate" style="font-size:0.86rem;">${esc(lr.assemblyName || 'Assembly ' + (idx + 1))}</div>
-                        <div class="text-muted" style="font-size:0.74rem;">${esc(lr.drawingNo || '—')}</div>
-                      </div>
-                      <i class="fa fa-chevron-right text-muted ms-2 mt-1"></i>
-                    </div>
-                    <div class="mb-2">${domBadge}</div>
-                    <div class="d-flex justify-content-between mb-1">
-                      <small class="text-muted">${done} / ${total} components</small>
-                      <small class="fw-bold text-primary">${pct}%</small>
-                    </div>
-                    <div class="ydc-progress-bar-wrap"><div class="ydc-progress-bar-fill" style="width:${pct}%"></div></div>
-                  </div>
+          let sr = String(lr.srNo || (idx + 1)).trim();
+          let isChild = sr.includes('.');
+          let srStyle = isChild ? 'color: #6f42c1; font-weight: 500;' : 'color: #0d6efd; font-weight: bold; font-size: 0.95rem;';
+          let asmStyle = isChild ? 'ps-4 text-secondary' : 'fw-bold text-dark';
+          let asmIcon = isChild ? '<i class="fa fa-level-up-alt fa-rotate-90 text-muted me-2"></i>' : '<i class="fa fa-cubes text-primary me-2"></i>';
+
+          html += `
+            <tr onclick="openYDComplanAssembly('${proj.id}', ${idx})" style="cursor: pointer; transition: background-color 0.15s;" title="Click to open execution stages for ${esc(lr.assemblyName || '')}">
+              <td class="text-center" style="${srStyle}">${esc(sr)}</td>
+              <td class="${asmStyle}">
+                <div class="d-flex align-items-center">
+                  ${asmIcon}
+                  <span>${esc(lr.assemblyName || 'Assembly ' + (idx + 1))}</span>
+                  ${lr.drawingNo ? `<span class="text-muted ms-2 small">(${esc(lr.drawingNo)})</span>` : ''}
                 </div>
-              </div>`;
-          });
-        }
+              </td>
+              <td class="text-center">
+                <span class="badge bg-light text-dark border px-2 py-1 fs-6">${esc(lr.dispatchWeek || '—')}</span>
+              </td>
+              <td class="text-center">
+                <div class="mb-1">${domBadge}</div>
+                <div class="ydc-progress-bar-wrap mx-auto" style="max-width: 120px;"><div class="ydc-progress-bar-fill" style="width:${pct}%"></div></div>
+                <small class="text-muted" style="font-size: 0.7rem;">${done} / ${total} components (${pct}%)</small>
+              </td>
+              <td class="text-center">
+                <button type="button" class="btn btn-sm btn-outline-primary fw-bold" onclick="event.stopPropagation(); openYDComplanAssembly('${proj.id}', ${idx})">
+                  Work <i class="fa fa-arrow-right ms-1"></i>
+                </button>
+              </td>
+            </tr>`;
+        });
+
+        html += `
+              </tbody>
+            </table>
+          </div>`;
         document.getElementById('ydcAssemblyGrid').innerHTML = html;
       }
 
