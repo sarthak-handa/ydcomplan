@@ -200,23 +200,35 @@
     }
 
     /* YDComplan Assemblies Table Styling */
-    #ydcAssemblyGridTable tbody tr {
-      height: 21px !important;
-    }
-    #ydcAssemblyGridTable th, #ydcAssemblyGridTable td {
-      padding: 0px 8px !important;
-      line-height: 21px !important;
-      height: 21px !important;
-      font-size: 0.82rem;
-      vertical-align: middle;
+    #ydcAssemblyGridTable th {
+      cursor: pointer;
+      user-select: none;
+      padding: 4px 8px !important;
+      font-size: 0.85rem;
     }
     .ydc-main-row {
+      height: 24px !important;
       background-color: #e2e8f0 !important;
       font-weight: bold;
     }
+    .ydc-main-row td {
+      height: 24px !important;
+      line-height: 24px !important;
+      padding: 0px 8px !important;
+      font-size: 0.82rem;
+      vertical-align: middle;
+    }
     .ydc-sub-row {
+      height: 21px !important;
       background-color: #ffffff !important;
       color: #4b5563;
+    }
+    .ydc-sub-row td {
+      height: 21px !important;
+      line-height: 21px !important;
+      padding: 0px 8px !important;
+      font-size: 0.82rem;
+      vertical-align: middle;
     }
     .ydc-chevron-parent {
       transition: transform 0.2s;
@@ -1168,36 +1180,12 @@
               </button>
             </div>
           </div>
-          <!-- Summary Stats -->
-          <div class="row g-3 mb-4">
-            <div class="col-6 col-md-3 col-lg-2">
-              <div class="ydc-stat-card text-center">
-                <div class="ydc-stat-val text-dark" id="ydcStatAssemblies">0</div>
-                <div class="ydc-stat-lbl">Assemblies</div>
-              </div>
-            </div>
-            <div class="col-6 col-md-3 col-lg-2">
-              <div class="ydc-stat-card text-center">
-                <div class="ydc-stat-val text-dark" id="ydcStatComponents">0</div>
-                <div class="ydc-stat-lbl">Components</div>
-              </div>
-            </div>
-            <div class="col-6 col-md-3 col-lg-2">
-              <div class="ydc-stat-card text-center">
-                <div class="ydc-stat-val text-success" id="ydcStatCompleted">0</div>
-                <div class="ydc-stat-lbl">Completed</div>
-              </div>
-            </div>
-            <div class="col-6 col-md-3 col-lg-2">
-              <div class="ydc-stat-card text-center">
-                <div class="ydc-stat-val text-warning" id="ydcStatPending">0</div>
-                <div class="ydc-stat-lbl">Pending</div>
-              </div>
-            </div>
-            <div class="col-6 col-md-3 col-lg-2">
-              <div class="ydc-stat-card text-center">
-                <div class="ydc-stat-val text-danger" id="ydcStatDelayed">—</div>
-                <div class="ydc-stat-lbl">Delayed</div>
+          <!-- Search Bar -->
+          <div class="row mb-2">
+            <div class="col-12 d-flex justify-content-end">
+              <div class="input-group input-group-sm" style="max-width: 250px;">
+                <span class="input-group-text bg-light border-end-0"><i class="fa fa-search text-muted"></i></span>
+                <input type="text" id="ydcSearchInput" class="form-control border-start-0" placeholder="Search assemblies..." onkeyup="filterYdcTable()">
               </div>
             </div>
           </div>
@@ -4507,6 +4495,53 @@
           $(childClass).show();
           $('#chevron_' + parentSr.replace(/\./g, '_')).removeClass('fa-chevron-right').addClass('fa-chevron-down');
         }
+      window.toggleAllYdcRows = function (btn) {
+        let icon = $(btn).find('i');
+        let isExpand = icon.hasClass('fa-plus');
+        if (isExpand) {
+          $('.ydc-sub-row').show();
+          $('.ydc-chevron-parent').removeClass('fa-chevron-right').addClass('fa-chevron-down');
+          icon.removeClass('fa-plus').addClass('fa-minus');
+        } else {
+          $('.ydc-sub-row').hide();
+          $('.ydc-chevron-parent').removeClass('fa-chevron-down').addClass('fa-chevron-right');
+          icon.removeClass('fa-minus').addClass('fa-plus');
+        }
+      };
+
+      window.filterYdcTable = function () {
+        let q = $('#ydcSearchInput').val().toLowerCase().trim();
+        $('#ydcAssemblyGridTable tbody tr').each(function () {
+          let text = $(this).text().toLowerCase();
+          if (text.includes(q)) {
+            $(this).show();
+          } else {
+            $(this).hide();
+          }
+        });
+      };
+
+      window.sortYdcTable = function (colIdx) {
+        let table = $('#ydcAssemblyGridTable');
+        let rows = table.find('tbody tr').get();
+        let asc = table.data('sort-asc-' + colIdx) !== true;
+        table.data('sort-asc-' + colIdx, asc);
+
+        rows.sort(function (a, b) {
+          let keyA = $(a).children('td').eq(colIdx).text().trim();
+          let keyB = $(b).children('td').eq(colIdx).text().trim();
+
+          let numA = parseFloat(keyA.replace(/[^0-9.]/g, ''));
+          let numB = parseFloat(keyB.replace(/[^0-9.]/g, ''));
+          if (!isNaN(numA) && !isNaN(numB)) {
+            return asc ? numA - numB : numB - numA;
+          }
+          return asc ? keyA.localeCompare(keyB) : keyB.localeCompare(keyA);
+        });
+
+        $.each(rows, function (index, row) {
+          table.children('tbody').append(row);
+        });
       };
 
       function getComponentsCount(proj, parentSr) {
@@ -4535,11 +4570,14 @@
             <table class="table table-hover table-bordered mb-0 align-middle shadow-sm bg-white" id="ydcAssemblyGridTable" style="border-radius: 8px; overflow: hidden; width: 100%;">
               <thead class="table-light">
                 <tr>
-                  <th style="width: 130px; text-align: center;">Serial Number</th>
-                  <th>Assembly / Subassembly</th>
-                  <th style="width: 170px; text-align: center;">Dispatch Week</th>
-                  <th style="width: 180px; text-align: center;">Execution Status</th>
-                  <th style="width: 150px; text-align: center;">Action</th>
+                  <th style="width: 140px; text-align: center;" onclick="sortYdcTable(0)">
+                    <button class="btn btn-sm btn-light border-0 py-0 px-1 me-1 fw-bold" onclick="event.stopPropagation(); toggleAllYdcRows(this)" id="ydcBtnToggleAll" title="Collapse/Expand All" style="font-size: 0.75rem;"><i class="fa fa-plus"></i></button>
+                    Serial Number <i class="fa fa-sort ms-1 opacity-50"></i>
+                  </th>
+                  <th onclick="sortYdcTable(1)">Assembly / Subassembly <i class="fa fa-sort ms-1 opacity-50"></i></th>
+                  <th style="width: 170px; text-align: center;" onclick="sortYdcTable(2)">Dispatch Week <i class="fa fa-sort ms-1 opacity-50"></i></th>
+                  <th style="width: 180px; text-align: center;" onclick="sortYdcTable(3)">Execution Status <i class="fa fa-sort ms-1 opacity-50"></i></th>
+                  <th style="width: 150px; text-align: center;" onclick="sortYdcTable(4)">Action <i class="fa fa-sort ms-1 opacity-50"></i></th>
                 </tr>
               </thead>
               <tbody>`;
