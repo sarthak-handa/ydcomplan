@@ -200,8 +200,15 @@
     }
 
     /* YDComplan Assemblies Table Styling */
+    #ydcAssemblyGridTable tbody tr {
+      height: 21px !important;
+    }
     #ydcAssemblyGridTable th, #ydcAssemblyGridTable td {
-      padding: 4px 8px !important;
+      padding: 0px 8px !important;
+      line-height: 21px !important;
+      height: 21px !important;
+      font-size: 0.82rem;
+      vertical-align: middle;
     }
     .ydc-main-row {
       background-color: #e2e8f0 !important;
@@ -210,6 +217,9 @@
     .ydc-sub-row {
       background-color: #ffffff !important;
       color: #4b5563;
+    }
+    .ydc-chevron-parent {
+      transition: transform 0.2s;
     }
 
     /* --- MODALS --- */
@@ -4487,15 +4497,37 @@
         $('#ydcAssemblyDetailsModal').modal('show');
       };
 
+      window.toggleYdcRow = function (parentSr) {
+        let childClass = '.ydc-child-of-' + parentSr.replace(/\./g, '_');
+        let visible = $(childClass).is(':visible');
+        if (visible) {
+          $(childClass).hide();
+          $('#chevron_' + parentSr.replace(/\./g, '_')).removeClass('fa-chevron-down').addClass('fa-chevron-right');
+        } else {
+          $(childClass).show();
+          $('#chevron_' + parentSr.replace(/\./g, '_')).removeClass('fa-chevron-right').addClass('fa-chevron-down');
+        }
+      };
+
+      function getComponentsCount(proj, parentSr) {
+        let prefix = parentSr + '.';
+        let total = 0;
+        (proj.loeData || []).forEach((lr, idx) => {
+          let sr = String(lr.srNo || '').trim();
+          if (sr.startsWith(prefix)) {
+            let a = proj.execution && proj.execution.assemblies.find(x => x.loeIdx === idx);
+            let comps = a ? (a.sap || []) : (lr.subtasks || []);
+            total += comps.length;
+          }
+        });
+        return total;
+      }
+
       function renderAsmGrid(proj) {
         let loeData = proj.loeData || [];
         if (!loeData.length) {
           document.getElementById('ydcAssemblyGrid').innerHTML = '<div class="alert alert-warning"><i class="fa fa-exclamation-triangle me-2"></i>No assemblies found in LOE data.</div>';
           return;
-        }
-
-        if ($.fn.DataTable.isDataTable('#ydcAssemblyGridTable')) {
-          $('#ydcAssemblyGridTable').DataTable().destroy();
         }
 
         let html = `
@@ -4507,7 +4539,7 @@
                   <th>Assembly / Subassembly</th>
                   <th style="width: 170px; text-align: center;">Dispatch Week</th>
                   <th style="width: 180px; text-align: center;">Execution Status</th>
-                  <th style="width: 120px; text-align: center;">Action</th>
+                  <th style="width: 150px; text-align: center;">Action</th>
                 </tr>
               </thead>
               <tbody>`;
@@ -4533,34 +4565,57 @@
 
           let sr = String(lr.srNo || (idx + 1)).trim();
           let isChild = sr.includes('.');
+          let parentPrefix = sr.split('.')[0];
+          
           let srStyle = isChild ? 'color: #6f42c1; font-weight: 500;' : 'color: #0d6efd; font-weight: bold; font-size: 0.95rem;';
           let asmStyle = isChild ? 'ps-4 text-secondary' : 'fw-bold text-dark';
-          let asmIcon = isChild ? '<i class="fa fa-level-up-alt fa-rotate-90 text-muted me-2"></i>' : '<i class="fa fa-cubes text-primary me-2"></i>';
+          let asmIcon = isChild ? '<i class="fa fa-level-up-alt fa-rotate-90 text-muted me-2"></i>' : '';
 
-          html += `
-            <tr class="${isChild ? 'ydc-sub-row' : 'ydc-main-row'}" onclick="openYDComplanAssemblyDetailsModal('${proj.id}', ${idx})" style="cursor: pointer; transition: background-color 0.15s;" title="Click to open details & progress history for ${esc(lr.assemblyName || '')}">
-              <td class="text-center" style="${srStyle}">${esc(sr)}</td>
-              <td class="${asmStyle}">
-                <div class="d-flex align-items-center">
-                  ${asmIcon}
-                  <span>${esc(lr.assemblyName || 'Assembly ' + (idx + 1))}</span>
-                  ${lr.drawingNo ? `<span class="text-muted ms-2 small">(${esc(lr.drawingNo)})</span>` : ''}
-                </div>
-              </td>
-              <td class="text-center">
-                <span class="badge bg-light text-dark border px-2 py-1 fs-6">${esc(lr.dispatchWeek || '—')}</span>
-              </td>
-              <td class="text-center">
-                <div class="mb-1">${domBadge}</div>
-                <div class="ydc-progress-bar-wrap mx-auto" style="max-width: 120px;"><div class="ydc-progress-bar-fill" style="width:${pct}%"></div></div>
-                <small class="text-muted" style="font-size: 0.7rem;">${done} / ${total} components (${pct}%)</small>
-              </td>
-              <td class="text-center">
-                <button type="button" class="btn btn-sm btn-outline-primary fw-bold" onclick="event.stopPropagation(); openYDComplanAssembly('${proj.id}', ${idx})">
-                  Work <i class="fa fa-arrow-right ms-1"></i>
-                </button>
-              </td>
-            </tr>`;
+          if (isChild) {
+            html += `
+              <tr class="ydc-sub-row ydc-child-of-${parentPrefix.replace(/\./g, '_')}" onclick="openYDComplanAssemblyDetailsModal('${proj.id}', ${idx})" style="cursor: pointer; transition: background-color 0.15s; display: none;" title="Click to open details & progress history for ${esc(lr.assemblyName || '')}">
+                <td class="text-center" style="${srStyle}">${esc(sr)}</td>
+                <td class="${asmStyle}">
+                  <div class="d-flex align-items-center">
+                    ${asmIcon}
+                    <span>${esc(lr.assemblyName || 'Assembly ' + (idx + 1))}</span>
+                    ${lr.drawingNo ? `<span class="text-muted ms-2 small">(${esc(lr.drawingNo)})</span>` : ''}
+                  </div>
+                </td>
+                <td class="text-center">
+                  <span class="badge bg-light text-dark border px-2 py-1 fs-6">${esc(lr.dispatchWeek || '—')}</span>
+                </td>
+                <td class="text-center">
+                  <div class="mb-1">${domBadge}</div>
+                  <div class="ydc-progress-bar-wrap mx-auto" style="max-width: 120px;"><div class="ydc-progress-bar-fill" style="width:${pct}%"></div></div>
+                  <small class="text-muted" style="font-size: 0.7rem;">${done} / ${total} components (${pct}%)</small>
+                </td>
+                <td class="text-center">
+                  <button type="button" class="btn btn-sm btn-outline-primary fw-bold" onclick="event.stopPropagation(); openYDComplanAssembly('${proj.id}', ${idx})" style="padding: 1px 8px; font-size: 0.75rem;">
+                    Work <i class="fa fa-arrow-right ms-1"></i>
+                  </button>
+                </td>
+              </tr>`;
+          } else {
+            let parentCompsCount = getComponentsCount(proj, sr);
+            html += `
+              <tr class="ydc-main-row" onclick="toggleYdcRow('${sr}')" style="cursor: pointer; transition: background-color 0.15s;" title="Click to toggle subassemblies">
+                <td class="text-center" style="${srStyle}">${esc(sr)}</td>
+                <td class="${asmStyle}">
+                  <div class="d-flex align-items-center">
+                    <i class="fa fa-chevron-right me-2 text-muted ydc-chevron-parent" id="chevron_${sr.replace(/\./g, '_')}"></i>
+                    <i class="fa fa-cubes text-primary me-2"></i>
+                    <span>${esc(lr.assemblyName || 'Assembly ' + (idx + 1))}</span>
+                    ${lr.drawingNo ? `<span class="text-muted ms-2 small">(${esc(lr.drawingNo)})</span>` : ''}
+                  </div>
+                </td>
+                <td class="text-center">
+                  <span class="badge bg-light text-dark border px-2 py-1 fs-6">${esc(lr.dispatchWeek || '—')}</span>
+                </td>
+                <td class="text-center">—</td>
+                <td class="text-center text-primary fw-bold small">${parentCompsCount} Components</td>
+              </tr>`;
+          }
         });
 
         html += `
@@ -4568,11 +4623,6 @@
             </table>
           </div>`;
         document.getElementById('ydcAssemblyGrid').innerHTML = html;
-
-        $('#ydcAssemblyGridTable').DataTable({
-          pageLength: 25,
-          order: [[0, "asc"]]
-        });
       }
 
       // ================================================================
