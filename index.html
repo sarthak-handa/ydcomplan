@@ -1579,6 +1579,36 @@
     </div>
   </div>
 
+  <!-- YD Complan Assembly Details Modal -->
+  <div class="modal fade" id="ydcAssemblyDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content shadow-lg">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title"><i class="fa fa-cubes text-primary me-2"></i>Assembly Progress & History</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-4">
+            <h6 class="fw-bold mb-1" id="ydcAsmDetName">Assembly Name</h6>
+            <div class="text-muted small" id="ydcAsmDetMeta">Meta details</div>
+          </div>
+          <!-- Stepper -->
+          <div id="ydcAssemblyStepper" class="stepper-wrapper mb-4">
+            <!-- Stepper steps injected by JS -->
+          </div>
+          <!-- History Log -->
+          <h6 class="fw-bold mb-2"><i class="fa fa-history text-secondary me-2"></i>Execution History</h6>
+          <ul class="list-group list-group-flush small" id="ydcAssemblyHistoryList" style="max-height: 200px; overflow-y: auto;">
+            <!-- History items injected by JS -->
+          </ul>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="modal fade" id="detailsModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
       <div class="modal-content">
@@ -4152,6 +4182,47 @@
       }
     });
 
+    // YDComplan BOM-to-SAP Bulk Paste Logic
+    $(document).on('paste', '.ydc-paste-target', function (e) {
+      var clipboardData = e.originalEvent.clipboardData || window.clipboardData;
+      var pastedData = clipboardData.getData('Text');
+      if (!pastedData) return;
+
+      var rows = pastedData.split(/\r\n|\n|\r/);
+      if (rows[rows.length - 1] === "") rows.pop();
+
+      if (rows.length <= 1 && pastedData.indexOf('\t') === -1) return;
+
+      e.preventDefault();
+
+      var startCol = parseInt($(this).data('col'));
+      var tbody = $(this).closest('tbody');
+      var startIdx = $(this).closest('tr').index();
+
+      for (var i = 0; i < rows.length; i++) {
+        var cols = rows[i].split('\t');
+        var trs = tbody.find('tr');
+        var tr = trs.eq(startIdx + i);
+
+        if (!tr.length) {
+          addYDCExcelRow();
+          trs = tbody.find('tr');
+          tr = trs.eq(startIdx + i);
+        }
+
+        let inputs = tr.find('.ydc-paste-target');
+        for (let j = 0; j < cols.length; j++) {
+          if (startCol + j < inputs.length) {
+            let inp = inputs.eq(startCol + j);
+            inp.val(cols[j].trim());
+            if (inp.hasClass('ydc-val-dwg') || inp.hasClass('ydc-val-comp')) {
+              recalcRowYS(inp[0]);
+            }
+          }
+        }
+      }
+    });
+
     // ================================================================
     // YDCOMPLAN EXECUTION MODULE
     // Additive only. All new functions. Zero existing code modified.
@@ -4311,11 +4382,13 @@
         $('#ydcProjectSummary').fadeIn(200);
 
         document.getElementById('ydcProjTitle').innerHTML =
-          '<i class="fa fa-project-diagram me-2"></i>' + esc(proj.client || '') + ' — ' + esc(proj.projNo || 'TBD');
+          '<i class="fa fa-project-diagram me-2"></i> YD Complan panel';
         document.getElementById('ydcProjMeta').innerHTML =
-          '<strong>PM:</strong> ' + esc(proj.pm || 'TBD') + '&nbsp;&nbsp;|&nbsp;&nbsp;' +
-          '<strong>Machine:</strong> ' + esc(proj.machine || '') + '&nbsp;&nbsp;|&nbsp;&nbsp;' +
-          '<strong>Site:</strong> ' + esc(proj.site || '');
+          '<strong>Project Number:</strong> ' + esc(proj.projNo || 'TBD') + '&nbsp;&nbsp;|&nbsp;&nbsp;' +
+          '<strong>Client:</strong> ' + esc(proj.client || '—') + '&nbsp;&nbsp;|&nbsp;&nbsp;' +
+          '<strong>Site:</strong> ' + esc(proj.site || '—') + '&nbsp;&nbsp;|&nbsp;&nbsp;' +
+          '<strong>Machine:</strong> ' + esc(proj.machine || '—') + '&nbsp;&nbsp;|&nbsp;&nbsp;' +
+          '<strong>Project Manager (PM):</strong> ' + esc(proj.pm || 'TBD');
 
         // Stats
         let totalAsm = (proj.loeData || []).length;
@@ -4339,6 +4412,68 @@
         else w.showYDComplanView();
       };
 
+      w.openYDComplanAssemblyDetailsModal = function (projId, loeIdx) {
+        let proj = getP(projId);
+        if (!proj) return;
+        let lr = proj.loeData && proj.loeData[loeIdx];
+        if (!lr) return;
+
+        $('#ydcAsmDetName').text(lr.assemblyName || 'Assembly');
+        $('#ydcAsmDetMeta').html(`
+          <strong>Drawing No:</strong> ${esc(lr.drawingNo || '—')} &nbsp;&nbsp;|&nbsp;&nbsp;
+          <strong>Dispatch Week:</strong> ${esc(lr.dispatchWeek || '—')} &nbsp;&nbsp;|&nbsp;&nbsp;
+          <strong>Project No:</strong> ${esc(proj.projNo || 'TBD')}
+        `);
+
+        let a = proj.execution && proj.execution.assemblies.find(x => x.loeIdx === loeIdx);
+        
+        let stepperHtml = '';
+        YDC_STAGES.forEach((s, idx) => {
+          let ss = a ? stageStatus(a, s.key) : 'pending';
+          let statusCls = '';
+          let icon = '<i class="fa fa-circle-notch opacity-25"></i>';
+          if (ss === 'complete') {
+            statusCls = 'completed';
+            icon = '<i class="fa fa-check"></i>';
+          } else if (ss === 'in_progress') {
+            statusCls = 'active';
+            icon = '<i class="fa fa-spinner fa-spin"></i>';
+          }
+          
+          let label = s.label;
+          if (s.key === 'sap') label = 'SAP processing';
+
+          stepperHtml += `
+            <div class="stepper-item ${statusCls}">
+              <div class="step-counter">${icon}</div>
+              <div class="step-name">${label}</div>
+            </div>`;
+        });
+        $('#ydcAssemblyStepper').html(stepperHtml);
+
+        let historyHtml = '';
+        let history = proj.ydcHistory ? proj.ydcHistory.filter(h => h.loeIdx === loeIdx) : [];
+        if (history.length === 0) {
+          historyHtml = '<li class="list-group-item text-muted text-center py-3">No history events logged yet.</li>';
+        } else {
+          history.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+          history.forEach(h => {
+            let dtStr = new Date(h.timestamp).toLocaleString();
+            historyHtml += `
+              <li class="list-group-item d-flex justify-content-between align-items-start py-2">
+                <div class="ms-2 me-auto">
+                  <div class="fw-bold">${esc(h.action)}</div>
+                  <span class="text-muted small">By ${esc(h.user || 'System')}</span>
+                </div>
+                <span class="badge bg-light text-dark border">${dtStr}</span>
+              </li>`;
+          });
+        }
+        $('#ydcAssemblyHistoryList').html(historyHtml);
+
+        $('#ydcAssemblyDetailsModal').modal('show');
+      };
+
       function renderAsmGrid(proj) {
         let loeData = proj.loeData || [];
         if (!loeData.length) {
@@ -4346,9 +4481,13 @@
           return;
         }
 
+        if ($.fn.DataTable.isDataTable('#ydcAssemblyGridTable')) {
+          $('#ydcAssemblyGridTable').DataTable().destroy();
+        }
+
         let html = `
           <div class="table-responsive">
-            <table class="table table-hover table-bordered mb-0 align-middle shadow-sm bg-white" style="border-radius: 8px; overflow: hidden;">
+            <table class="table table-hover table-bordered mb-0 align-middle shadow-sm bg-white" id="ydcAssemblyGridTable" style="border-radius: 8px; overflow: hidden; width: 100%;">
               <thead class="table-light">
                 <tr>
                   <th style="width: 130px; text-align: center;">Serial Number</th>
@@ -4373,7 +4512,7 @@
             for (let si = YDC_STAGES.length - 1; si >= 0; si--) {
               let ss = stageStatus(a, YDC_STAGES[si].key);
               if (ss !== 'pending') {
-                domBadge = `<span class="badge ${YDC_STAGES[si].badgeCls}" style="font-size:0.75rem;">${YDC_STAGES[si].label}: ${ss === 'complete' ? 'Complete' : 'In Progress'}</span>`;
+                domBadge = `<span class="badge ${YDC_STAGES[si].badgeCls}" style="font-size:0.75rem;">${YDC_STAGES[si].label === 'SAP' ? 'SAP processing' : YDC_STAGES[si].label}: ${ss === 'complete' ? 'Complete' : 'In Progress'}</span>`;
                 break;
               }
             }
@@ -4386,7 +4525,7 @@
           let asmIcon = isChild ? '<i class="fa fa-level-up-alt fa-rotate-90 text-muted me-2"></i>' : '<i class="fa fa-cubes text-primary me-2"></i>';
 
           html += `
-            <tr onclick="openYDComplanAssembly('${proj.id}', ${idx})" style="cursor: pointer; transition: background-color 0.15s;" title="Click to open execution stages for ${esc(lr.assemblyName || '')}">
+            <tr onclick="openYDComplanAssemblyDetailsModal('${proj.id}', ${idx})" style="cursor: pointer; transition: background-color 0.15s;" title="Click to open details & progress history for ${esc(lr.assemblyName || '')}">
               <td class="text-center" style="${srStyle}">${esc(sr)}</td>
               <td class="${asmStyle}">
                 <div class="d-flex align-items-center">
@@ -4416,6 +4555,11 @@
             </table>
           </div>`;
         document.getElementById('ydcAssemblyGrid').innerHTML = html;
+
+        $('#ydcAssemblyGridTable').DataTable({
+          pageLength: 25,
+          order: [[0, "asc"]]
+        });
       }
 
       // ================================================================
@@ -4469,9 +4613,15 @@
 
         let html = `
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0 text-secondary"><i class="fa fa-table me-2"></i>Component Components List (BOM)</h5>
-            <div>
-              <button class="btn btn-outline-primary btn-sm fw-bold me-2" onclick="copyYDCExcelTable()">
+            <h5 class="mb-0 text-secondary"><i class="fa fa-table me-2"></i>BOM to SAP</h5>
+            <div class="d-flex gap-2">
+              <button class="btn btn-success btn-sm fw-bold" onclick="addYDCExcelRow()">
+                <i class="fa fa-plus me-1"></i>Add Row
+              </button>
+              <button class="btn btn-primary btn-sm fw-bold" onclick="saveYDCExcelTable()">
+                <i class="fa fa-save me-1"></i>Save Changes
+              </button>
+              <button class="btn btn-outline-primary btn-sm fw-bold" onclick="copyYDCExcelTable()">
                 <i class="fa fa-copy me-1"></i>Copy Table Data
               </button>
               <button class="btn btn-outline-success btn-sm fw-bold" onclick="exportYDCExcelTable()">
@@ -4491,26 +4641,40 @@
                   <th style="width: 80px;" class="text-center">QUANTITY</th>
                   <th>MATERIAL</th>
                   <th style="width: 100px;" class="text-center">WEIGHT</th>
+                  <th style="width: 40px;" class="text-center"><i class="fa fa-trash"></i></th>
                 </tr>
               </thead>
               <tbody>`;
 
         if (subtasks.length === 0) {
-          html += `<tr><td colspan="8" class="text-center py-4 text-muted"><i class="fa fa-folder-open me-2 opacity-50"></i>No components found. Upload BOM in drawings page.</td></tr>`;
+          html += `<tr class="empty-row"><td colspan="9" class="text-center py-4 text-muted"><i class="fa fa-folder-open me-2 opacity-50"></i>No components found. Upload BOM or click Add Row to start.</td></tr>`;
         } else {
           subtasks.forEach((st, i) => {
             let ysCode = getYSCode(st.drawingNo);
             let ysDesc = getYSDescription(st.component, st.drawingNo);
             html += `
-              <tr>
-                <td class="text-center align-middle text-muted fw-bold">${i + 1}</td>
-                <td class="align-middle fw-semibold text-primary">${esc(ysCode)}</td>
-                <td class="align-middle fw-semibold text-dark">${esc(ysDesc)}</td>
-                <td class="align-middle">${esc(st.drawingNo || '—')}</td>
-                <td class="align-middle">${esc(st.component || '—')}</td>
-                <td class="text-center align-middle">${esc(st.qty || '—')}</td>
-                <td class="align-middle">${esc(st.material || '—')}</td>
-                <td class="text-center align-middle">${esc(st.weight || '—')}</td>
+              <tr class="ydc-excel-row">
+                <td class="text-center align-middle text-muted fw-bold row-num">${i + 1}</td>
+                <td class="align-middle fw-semibold text-primary ydc-yscode-cell">${esc(ysCode)}</td>
+                <td class="align-middle fw-semibold text-dark ydc-ysdesc-cell">${esc(ysDesc)}</td>
+                <td class="align-middle">
+                  <input type="text" class="form-control form-control-sm border-0 ydc-val-dwg ydc-paste-target" data-col="0" value="${esc(st.drawingNo || '')}" oninput="recalcRowYS(this)">
+                </td>
+                <td class="align-middle">
+                  <input type="text" class="form-control form-control-sm border-0 ydc-val-comp ydc-paste-target" data-col="1" value="${esc(st.component || '')}" oninput="recalcRowYS(this)">
+                </td>
+                <td class="align-middle">
+                  <input type="number" class="form-control form-control-sm border-0 text-center ydc-val-qty ydc-paste-target" data-col="2" value="${esc(st.qty || '')}">
+                </td>
+                <td class="align-middle">
+                  <input type="text" class="form-control form-control-sm border-0 ydc-val-mat ydc-paste-target" data-col="3" value="${esc(st.material || '')}">
+                </td>
+                <td class="align-middle">
+                  <input type="text" class="form-control form-control-sm border-0 text-center ydc-val-wt ydc-paste-target" data-col="4" value="${esc(st.weight || '')}">
+                </td>
+                <td class="text-center align-middle">
+                  <button class="btn btn-sm btn-outline-danger border-0 bg-transparent text-danger" onclick="deleteYDCExcelRow(this)"><i class="fa fa-times"></i></button>
+                </td>
               </tr>`;
           });
         }
@@ -4523,15 +4687,121 @@
         document.getElementById('ydcAssemblyComponentsExcelView').innerHTML = html;
       }
 
+      window.recalcRowYS = function (input) {
+        let tr = $(input).closest('tr');
+        let dwg = tr.find('.ydc-val-dwg').val() || '';
+        let comp = tr.find('.ydc-val-comp').val() || '';
+        
+        let ysCode = getYSCode(dwg);
+        let ysDesc = getYSDescription(comp, dwg);
+        
+        tr.find('.ydc-yscode-cell').text(ysCode);
+        tr.find('.ydc-ysdesc-cell').text(ysDesc);
+      };
+
+      window.addYDCExcelRow = function (st = {}) {
+        let tbody = $('#ydcExcelTable tbody');
+        tbody.find('.empty-row').remove();
+        let trCount = tbody.find('tr').length + 1;
+        let ysCode = getYSCode(st.drawingNo);
+        let ysDesc = getYSDescription(st.component, st.drawingNo);
+        let tr = $(`
+              <tr class="ydc-excel-row">
+                <td class="text-center align-middle text-muted fw-bold row-num">${trCount}</td>
+                <td class="align-middle fw-semibold text-primary ydc-yscode-cell">${esc(ysCode)}</td>
+                <td class="align-middle fw-semibold text-dark ydc-ysdesc-cell">${esc(ysDesc)}</td>
+                <td class="align-middle">
+                  <input type="text" class="form-control form-control-sm border-0 ydc-val-dwg ydc-paste-target" data-col="0" value="${esc(st.drawingNo || '')}" oninput="recalcRowYS(this)">
+                </td>
+                <td class="align-middle">
+                  <input type="text" class="form-control form-control-sm border-0 ydc-val-comp ydc-paste-target" data-col="1" value="${esc(st.component || '')}" oninput="recalcRowYS(this)">
+                </td>
+                <td class="align-middle">
+                  <input type="number" class="form-control form-control-sm border-0 text-center ydc-val-qty ydc-paste-target" data-col="2" value="${esc(st.qty || '')}">
+                </td>
+                <td class="align-middle">
+                  <input type="text" class="form-control form-control-sm border-0 ydc-val-mat ydc-paste-target" data-col="3" value="${esc(st.material || '')}">
+                </td>
+                <td class="align-middle">
+                  <input type="text" class="form-control form-control-sm border-0 text-center ydc-val-wt ydc-paste-target" data-col="4" value="${esc(st.weight || '')}">
+                </td>
+                <td class="text-center align-middle">
+                  <button class="btn btn-sm btn-outline-danger border-0 bg-transparent text-danger" onclick="deleteYDCExcelRow(this)"><i class="fa fa-times"></i></button>
+                </td>
+              </tr>
+            `);
+        tbody.append(tr);
+        updateYDCExcelRowNumbers();
+      };
+
+      window.deleteYDCExcelRow = function (btn) {
+        $(btn).closest('tr').remove();
+        updateYDCExcelRowNumbers();
+      };
+
+      function updateYDCExcelRowNumbers() {
+        $('#ydcExcelTable tbody tr').each(function (i) {
+          $(this).find('.row-num').text(i + 1);
+        });
+      }
+
+      window.saveYDCExcelTable = async function () {
+        let subtasks = [];
+        $('#ydcExcelTable tbody tr.ydc-excel-row').each(function () {
+          let dwg = $(this).find('.ydc-val-dwg').val().trim();
+          let comp = $(this).find('.ydc-val-comp').val().trim();
+          let qty = $(this).find('.ydc-val-qty').val().trim();
+          let mat = $(this).find('.ydc-val-mat').val().trim();
+          let wt = $(this).find('.ydc-val-wt').val().trim();
+
+          if (comp || dwg || qty || mat || wt) {
+            subtasks.push({
+              component: comp,
+              drawingNo: dwg,
+              qty: qty,
+              material: mat,
+              weight: wt
+            });
+          }
+        });
+
+        let proj = getP(w._ydcState.projId);
+        let loeIdx = w._ydcState.loeIdx;
+        if (proj && proj.loeData && proj.loeData[loeIdx]) {
+          proj.loeData[loeIdx].subtasks = subtasks;
+          
+          if (proj.execution && proj.execution.assemblies) {
+            proj.execution.assemblies = proj.execution.assemblies.filter(x => x.loeIdx !== loeIdx);
+          }
+
+          let saveFn = window.saveProjects || (typeof saveProjects === 'function' ? saveProjects : null);
+          if (saveFn) await saveFn();
+
+          if (!proj.ydcHistory) proj.ydcHistory = [];
+          proj.ydcHistory.push({
+            loeIdx: loeIdx,
+            timestamp: new Date().toISOString(),
+            user: "Admin",
+            action: "BOM updated & saved in SAP stage (" + subtasks.length + " items)"
+          });
+          if (saveFn) await saveFn();
+
+          Swal.fire({ icon: 'success', title: 'Saved!', text: 'BOM updated successfully.', timer: 1500, showConfirmButton: false });
+          renderAssemblyExcelTable(proj, loeIdx);
+        }
+      };
+
       window.copyYDCExcelTable = function () {
         let text = "YSCODE\tYSDESCRIPTION\tDRAWING NUMBER\tCOMPONENT NAME\tQUANTITY\tMATERIAL\tWEIGHT\n";
-        $('#ydcExcelTable tbody tr').each(function () {
-          let tds = $(this).find('td');
-          if (tds.length < 8) return;
+        $('#ydcExcelTable tbody tr.ydc-excel-row').each(function () {
           let row = [];
-          for (let i = 1; i < 8; i++) {
-            row.push($(tds[i]).text().trim());
-          }
+          row.push($(this).find('.ydc-yscode-cell').text().trim());
+          row.push($(this).find('.ydc-ysdesc-cell').text().trim());
+          row.push($(this).find('.ydc-val-dwg').val().trim());
+          row.push($(this).find('.ydc-val-comp').val().trim());
+          row.push($(this).find('.ydc-val-qty').val().trim());
+          row.push($(this).find('.ydc-val-mat').val().trim());
+          row.push($(this).find('.ydc-val-wt').val().trim());
           text += row.join('\t') + '\n';
         });
         navigator.clipboard.writeText(text).then(() => {
