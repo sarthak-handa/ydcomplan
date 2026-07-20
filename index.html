@@ -4517,13 +4517,26 @@
 
       window.sortYdcTable = function (colIdx) {
         let table = $('#ydcAssemblyGridTable');
-        let rows = table.find('tbody tr').get();
+        let tbody = table.find('tbody');
         let asc = table.data('sort-asc-' + colIdx) !== true;
         table.data('sort-asc-' + colIdx, asc);
 
-        rows.sort(function (a, b) {
-          let keyA = $(a).children('td').eq(colIdx).text().trim();
-          let keyB = $(b).children('td').eq(colIdx).text().trim();
+        let parentTrs = tbody.find('tr.ydc-main-row').get();
+        let groups = [];
+
+        parentTrs.forEach(function (parentTr) {
+          let sr = $(parentTr).find('td').eq(0).text().trim();
+          let escapedSr = sr.replace(/\./g, '_');
+          let children = tbody.find('tr.ydc-child-of-' + escapedSr).get();
+          groups.push({
+            parent: parentTr,
+            children: children
+          });
+        });
+
+        groups.sort(function (a, b) {
+          let keyA = $(a.parent).children('td').eq(colIdx).text().trim();
+          let keyB = $(b.parent).children('td').eq(colIdx).text().trim();
 
           let numA = parseFloat(keyA.replace(/[^0-9.]/g, ''));
           let numB = parseFloat(keyB.replace(/[^0-9.]/g, ''));
@@ -4533,8 +4546,11 @@
           return asc ? keyA.localeCompare(keyB) : keyB.localeCompare(keyA);
         });
 
-        $.each(rows, function (index, row) {
-          table.children('tbody').append(row);
+        groups.forEach(function (g) {
+          tbody.append(g.parent);
+          g.children.forEach(function (c) {
+            tbody.append(c);
+          });
         });
       };
 
