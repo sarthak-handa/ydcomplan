@@ -4410,10 +4410,14 @@
           totalComp += comps.length;
           if (a) doneComp += comps.filter(c => c.status === 'submitted').length;
         });
-        document.getElementById('ydcStatAssemblies').textContent = totalAsm;
-        document.getElementById('ydcStatComponents').textContent = totalComp;
-        document.getElementById('ydcStatCompleted').textContent = doneComp;
-        document.getElementById('ydcStatPending').textContent = totalComp - doneComp;
+        let elAsm = document.getElementById('ydcStatAssemblies');
+        if (elAsm) elAsm.textContent = totalAsm;
+        let elComp = document.getElementById('ydcStatComponents');
+        if (elComp) elComp.textContent = totalComp;
+        let elDone = document.getElementById('ydcStatCompleted');
+        if (elDone) elDone.textContent = doneComp;
+        let elPending = document.getElementById('ydcStatPending');
+        if (elPending) elPending.textContent = totalComp - doneComp;
 
         renderAsmGrid(proj);
       };
