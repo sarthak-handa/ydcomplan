@@ -200,35 +200,23 @@
     }
 
     /* YDComplan Assemblies Table Styling */
-    #ydcAssemblyGridTable th {
-      cursor: pointer;
-      user-select: none;
-      padding: 4px 8px !important;
-      font-size: 0.85rem;
+    #ydcAssemblyGridTable tbody tr {
+      height: 21px !important;
+    }
+    #ydcAssemblyGridTable th, #ydcAssemblyGridTable td {
+      padding: 0px 8px !important;
+      line-height: 21px !important;
+      height: 21px !important;
+      font-size: 0.82rem;
+      vertical-align: middle;
     }
     .ydc-main-row {
-      height: 24px !important;
       background-color: #e2e8f0 !important;
       font-weight: bold;
     }
-    .ydc-main-row td {
-      height: 24px !important;
-      line-height: 24px !important;
-      padding: 0px 8px !important;
-      font-size: 0.82rem;
-      vertical-align: middle;
-    }
     .ydc-sub-row {
-      height: 21px !important;
       background-color: #ffffff !important;
       color: #4b5563;
-    }
-    .ydc-sub-row td {
-      height: 21px !important;
-      line-height: 21px !important;
-      padding: 0px 8px !important;
-      font-size: 0.82rem;
-      vertical-align: middle;
     }
     .ydc-chevron-parent {
       transition: transform 0.2s;
@@ -4499,6 +4487,8 @@
           $(childClass).show();
           $('#chevron_' + parentSr.replace(/\./g, '_')).removeClass('fa-chevron-right').addClass('fa-chevron-down');
         }
+      };
+
       window.toggleAllYdcRows = function (btn) {
         let icon = $(btn).find('i');
         let isExpand = icon.hasClass('fa-plus');
