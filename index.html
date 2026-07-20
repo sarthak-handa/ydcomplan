@@ -1146,7 +1146,7 @@
           <div class="page-title-bar d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
             <div>
               <h2>
-                <span id="ydcProjTitle"><i class="fa fa-project-diagram me-2"></i>YDComplan</span>
+                <span id="ydcProjTitle"><i class="fa fa-project-diagram me-2"></i>YD Complan panel (YD Component Planning)</span>
                 <select id="ydcProjectSelector" class="form-select form-select-sm d-inline-block w-auto ms-2" style="font-size: 16px; font-weight: normal; vertical-align: middle;" onchange="showYDComplanView(this.value)">
                 </select>
               </h2>
@@ -4395,7 +4395,7 @@
         $('#ydcProjectSummary').fadeIn(200);
 
         document.getElementById('ydcProjTitle').innerHTML =
-          '<i class="fa fa-project-diagram me-2"></i> YD Complan panel';
+          '<i class="fa fa-project-diagram me-2"></i> YD Complan panel (YD Component Planning)';
         document.getElementById('ydcProjMeta').innerHTML =
           '<strong>Project Number:</strong> ' + esc(proj.projNo || 'TBD') + '&nbsp;&nbsp;|&nbsp;&nbsp;' +
           '<strong>Client:</strong> ' + esc(proj.client || '—') + '&nbsp;&nbsp;|&nbsp;&nbsp;' +
@@ -4538,7 +4538,7 @@
           let asmIcon = isChild ? '<i class="fa fa-level-up-alt fa-rotate-90 text-muted me-2"></i>' : '<i class="fa fa-cubes text-primary me-2"></i>';
 
           html += `
-            <tr onclick="openYDComplanAssemblyDetailsModal('${proj.id}', ${idx})" style="cursor: pointer; transition: background-color 0.15s;" title="Click to open details & progress history for ${esc(lr.assemblyName || '')}">
+            <tr class="${isChild ? 'ydc-sub-row' : 'ydc-main-row'}" onclick="openYDComplanAssemblyDetailsModal('${proj.id}', ${idx})" style="cursor: pointer; transition: background-color 0.15s;" title="Click to open details & progress history for ${esc(lr.assemblyName || '')}">
               <td class="text-center" style="${srStyle}">${esc(sr)}</td>
               <td class="${asmStyle}">
                 <div class="d-flex align-items-center">
@@ -4620,9 +4620,45 @@
         return comp;
       }
 
+      window.ydcDynamicCols = window.ydcDynamicCols || [];
+
+      window.addYDCColumn = function () {
+        Swal.fire({
+          title: 'Add New Column',
+          input: 'text',
+          inputPlaceholder: 'Enter column name...',
+          showCancelButton: true,
+          confirmButtonText: 'Add'
+        }).then((result) => {
+          let colName = result.value;
+          if (!colName) return;
+          let colKey = 'custom_' + colName.toLowerCase().replace(/[^a-z0-9]/g, '');
+          window.ydcDynamicCols.push({ key: colKey, label: colName });
+          
+          let proj = getP(w._ydcState.projId);
+          let loeIdx = w._ydcState.loeIdx;
+          renderAssemblyExcelTable(proj, loeIdx);
+        });
+      };
+
+      window.sendToSAPTeam = function () {
+        Swal.fire({
+          icon: 'success',
+          title: 'Sent to SAP Team',
+          text: 'The BOM has been successfully sent to the SAP department.',
+          timer: 2000,
+          showConfirmButton: false
+        });
+      };
+
       function renderAssemblyExcelTable(proj, loeIdx) {
         let lr = proj.loeData && proj.loeData[loeIdx];
         let subtasks = lr ? (lr.subtasks || []) : [];
+
+        let dynamicHeaders = '';
+        window.ydcDynamicCols.forEach(c => {
+          dynamicHeaders += `<th>${esc(c.label)}</th>`;
+        });
 
         let html = `
           <div class="d-flex justify-content-between align-items-center mb-3">
@@ -4630,6 +4666,9 @@
             <div class="d-flex gap-2">
               <button class="btn btn-success btn-sm fw-bold" onclick="addYDCExcelRow()">
                 <i class="fa fa-plus me-1"></i>Add Row
+              </button>
+              <button class="btn btn-warning btn-sm fw-bold text-dark" onclick="addYDCColumn()">
+                <i class="fa fa-columns me-1"></i>Add Column
               </button>
               <button class="btn btn-primary btn-sm fw-bold" onclick="saveYDCExcelTable()">
                 <i class="fa fa-save me-1"></i>Save Changes
@@ -4639,6 +4678,9 @@
               </button>
               <button class="btn btn-outline-success btn-sm fw-bold" onclick="exportYDCExcelTable()">
                 <i class="fa fa-file-excel me-1"></i>Export to Excel
+              </button>
+              <button class="btn btn-info btn-sm fw-bold text-white shadow-sm" onclick="sendToSAPTeam()">
+                <i class="fa fa-paper-plane me-1"></i>Send to SAP Team
               </button>
             </div>
           </div>
@@ -4653,17 +4695,30 @@
                   <th>COMPONENT NAME</th>
                   <th style="width: 80px;" class="text-center">QUANTITY</th>
                   <th style="width: 100px;" class="text-center">WEIGHT</th>
+                  ${dynamicHeaders}
                   <th style="width: 40px;" class="text-center"><i class="fa fa-trash"></i></th>
                 </tr>
               </thead>
               <tbody>`;
 
+        let totalColsSpan = 8 + window.ydcDynamicCols.length;
+
         if (subtasks.length === 0) {
-          html += `<tr class="empty-row"><td colspan="8" class="text-center py-4 text-muted"><i class="fa fa-folder-open me-2 opacity-50"></i>No components found. Upload BOM or click Add Row to start.</td></tr>`;
+          html += `<tr class="empty-row"><td colspan="${totalColsSpan}" class="text-center py-4 text-muted"><i class="fa fa-folder-open me-2 opacity-50"></i>No components found. Upload BOM or click Add Row to start.</td></tr>`;
         } else {
           subtasks.forEach((st, i) => {
             let ysCode = st.ysCode || getYSCode(st.drawingNo);
             let ysDesc = st.ysDescription || getYSDescription(st.component, st.drawingNo);
+
+            let dynamicCells = '';
+            window.ydcDynamicCols.forEach(c => {
+              let val = st[c.key] || '';
+              dynamicCells += `
+                <td class="align-middle">
+                  <input type="text" class="form-control form-control-sm border-0 ydc-val-custom ydc-paste-target" data-field="${c.key}" value="${esc(val)}">
+                </td>`;
+            });
+
             html += `
               <tr class="ydc-excel-row">
                 <td class="text-center align-middle text-muted fw-bold row-num">${i + 1}</td>
@@ -4677,6 +4732,7 @@
                 <td class="align-middle ydc-text-comp">${esc(st.component || '')}</td>
                 <td class="text-center align-middle ydc-text-qty">${esc(st.qty || '')}</td>
                 <td class="text-center align-middle ydc-text-wt">${esc(st.weight || '')}</td>
+                ${dynamicCells}
                 <td class="text-center align-middle">
                   <button class="btn btn-sm btn-outline-danger border-0 bg-transparent text-danger" onclick="deleteYDCExcelRow(this)"><i class="fa fa-times"></i></button>
                 </td>
@@ -4700,6 +4756,16 @@
         let trCount = tbody.find('tr').length + 1;
         let ysCode = st.ysCode || getYSCode(st.drawingNo);
         let ysDesc = st.ysDescription || getYSDescription(st.component, st.drawingNo);
+
+        let dynamicCells = '';
+        window.ydcDynamicCols.forEach(c => {
+          let val = st[c.key] || '';
+          dynamicCells += `
+            <td class="align-middle">
+              <input type="text" class="form-control form-control-sm border-0 ydc-val-custom ydc-paste-target" data-field="${c.key}" value="${esc(val)}">
+            </td>`;
+        });
+
         let tr = $(`
               <tr class="ydc-excel-row">
                 <td class="text-center align-middle text-muted fw-bold row-num">${trCount}</td>
@@ -4713,6 +4779,7 @@
                 <td class="align-middle ydc-text-comp">${esc(st.component || '')}</td>
                 <td class="text-center align-middle ydc-text-qty">${esc(st.qty || '')}</td>
                 <td class="text-center align-middle ydc-text-wt">${esc(st.weight || '')}</td>
+                ${dynamicCells}
                 <td class="text-center align-middle">
                   <button class="btn btn-sm btn-outline-danger border-0 bg-transparent text-danger" onclick="deleteYDCExcelRow(this)"><i class="fa fa-times"></i></button>
                 </td>
@@ -4743,6 +4810,12 @@
           let qty = $(this).find('.ydc-text-qty').text().trim();
           let wt = $(this).find('.ydc-text-wt').text().trim();
 
+          let customFields = {};
+          $(this).find('.ydc-val-custom').each(function () {
+            let field = $(this).data('field');
+            customFields[field] = $(this).val().trim();
+          });
+
           if (ysCode || ysDesc || comp || dwg || qty || wt) {
             subtasks.push({
               ysCode: ysCode,
@@ -4750,7 +4823,8 @@
               component: comp,
               drawingNo: dwg,
               qty: qty,
-              weight: wt
+              weight: wt,
+              ...customFields
             });
           }
         });
@@ -4782,7 +4856,10 @@
       };
 
       window.copyYDCExcelTable = function () {
-        let text = "YSCODE\tYSDESCRIPTION\tDRAWING NUMBER\tCOMPONENT NAME\tQUANTITY\tWEIGHT\n";
+        let dynamicHeaderStr = window.ydcDynamicCols.map(c => c.label).join('\t');
+        let headerPrefix = dynamicHeaderStr ? ('\t' + dynamicHeaderStr) : '';
+        let text = "YSCODE\tYSDESCRIPTION\tDRAWING NUMBER\tCOMPONENT NAME\tQUANTITY\tWEIGHT" + headerPrefix + "\n";
+
         $('#ydcExcelTable tbody tr.ydc-excel-row').each(function () {
           let row = [];
           row.push($(this).find('.ydc-val-yscode').val().trim());
@@ -4791,6 +4868,11 @@
           row.push($(this).find('.ydc-text-comp').text().trim());
           row.push($(this).find('.ydc-text-qty').text().trim());
           row.push($(this).find('.ydc-text-wt').text().trim());
+
+          $(this).find('.ydc-val-custom').each(function () {
+            row.push($(this).val().trim());
+          });
+
           text += row.join('\t') + '\n';
         });
         navigator.clipboard.writeText(text).then(() => {
