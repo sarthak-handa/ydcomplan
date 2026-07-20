@@ -14,6 +14,7 @@
   <link rel="stylesheet"
     href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -32,7 +33,11 @@
       background-size: cover;
       background-position: center;
       background-attachment: fixed;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    h1, h2, h3, h4, h5, h6, .page-title, .modal-title, .content-card h2 {
+      font-family: 'Nunito', sans-serif !important;
     }
 
     /* --- HEADER STYLING --- */
@@ -200,23 +205,59 @@
     }
 
     /* YDComplan Assemblies Table Styling */
-    #ydcAssemblyGridTable tbody tr {
-      height: 21px !important;
-    }
-    #ydcAssemblyGridTable th, #ydcAssemblyGridTable td {
-      padding: 0px 8px !important;
-      line-height: 21px !important;
-      height: 21px !important;
-      font-size: 0.82rem;
-      vertical-align: middle;
+    #ydcAssemblyGridTable th {
+      cursor: pointer;
+      user-select: none;
+      padding: 4px 8px !important;
+      font-size: 0.85rem;
     }
     .ydc-main-row {
+      height: 24px !important;
       background-color: #e2e8f0 !important;
       font-weight: bold;
     }
+    .ydc-main-row td {
+      height: 24px !important;
+      line-height: 24px !important;
+      padding: 0px 8px !important;
+      font-size: 0.82rem;
+      vertical-align: middle;
+    }
     .ydc-sub-row {
+      height: 21px !important;
       background-color: #ffffff !important;
       color: #4b5563;
+    }
+    .ydc-sub-row td {
+      height: 21px !important;
+      line-height: 21px !important;
+      padding: 0px 8px !important;
+      font-size: 0.82rem;
+      vertical-align: middle;
+    }
+    .ydc-chevron-parent {
+      transition: transform 0.2s;
+    }
+
+    /* Custom Context Menu styling */
+    #ydcContextMenu {
+      min-width: 160px;
+      font-size: 0.85rem;
+      border-radius: 6px;
+      border: 1px solid rgba(0,0,0,0.15);
+      background: white;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    #ydcContextMenu .dropdown-item {
+      padding: 6px 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      color: #333;
+    }
+    #ydcContextMenu .dropdown-item:hover {
+      background-color: #f1f5f9;
+      color: #000;
     }
     .ydc-chevron-parent {
       transition: transform 0.2s;
@@ -1606,6 +1647,11 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Custom Context Menu for BOM to SAP Table -->
+  <div id="ydcContextMenu" class="dropdown-menu shadow bg-white border border-secondary" style="display: none; position: absolute; z-index: 2000;">
+    <!-- Items dynamically inserted by JS -->
   </div>
 
   <div class="modal fade" id="detailsModal" tabindex="-1">
@@ -4478,14 +4524,15 @@
       };
 
       window.toggleYdcRow = function (parentSr) {
-        let childClass = '.ydc-child-of-' + parentSr.replace(/\./g, '_');
+        let cleanSr = String(parentSr).trim().replace(/[^a-zA-Z0-9]/g, '');
+        let childClass = '.ydc-child-of-' + cleanSr;
         let visible = $(childClass).is(':visible');
         if (visible) {
           $(childClass).hide();
-          $('#chevron_' + parentSr.replace(/\./g, '_')).removeClass('fa-chevron-down').addClass('fa-chevron-right');
+          $('#chevron_' + cleanSr).removeClass('fa-chevron-down').addClass('fa-chevron-right');
         } else {
           $(childClass).show();
-          $('#chevron_' + parentSr.replace(/\./g, '_')).removeClass('fa-chevron-right').addClass('fa-chevron-down');
+          $('#chevron_' + cleanSr).removeClass('fa-chevron-right').addClass('fa-chevron-down');
         }
       };
 
@@ -4526,8 +4573,8 @@
 
         parentTrs.forEach(function (parentTr) {
           let sr = $(parentTr).find('td').eq(0).text().trim();
-          let escapedSr = sr.replace(/\./g, '_');
-          let children = tbody.find('tr.ydc-child-of-' + escapedSr).get();
+          let cleanSr = sr.replace(/[^a-zA-Z0-9]/g, '');
+          let children = tbody.find('tr.ydc-child-of-' + cleanSr).get();
           groups.push({
             parent: parentTr,
             children: children
@@ -4621,7 +4668,7 @@
 
           if (isChild) {
             html += `
-              <tr class="ydc-sub-row ydc-child-of-${parentPrefix.replace(/\./g, '_')}" onclick="openYDComplanAssemblyDetailsModal('${proj.id}', ${idx})" style="cursor: pointer; transition: background-color 0.15s; display: none;" title="Click to open details & progress history for ${esc(lr.assemblyName || '')}">
+              <tr class="ydc-sub-row ydc-child-of-${parentPrefix.replace(/[^a-zA-Z0-9]/g, '')}" onclick="openYDComplanAssemblyDetailsModal('${proj.id}', ${idx})" style="cursor: pointer; transition: background-color 0.15s; display: none;" title="Click to open details & progress history for ${esc(lr.assemblyName || '')}">
                 <td class="text-center" style="${srStyle}">${esc(sr)}</td>
                 <td class="${asmStyle}">
                   <div class="d-flex align-items-center">
@@ -4631,7 +4678,7 @@
                   </div>
                 </td>
                 <td class="text-center">
-                  <span class="badge bg-light text-dark border px-2 py-1 fs-6">${esc(lr.dispatchWeek || '—')}</span>
+                  <span class="badge bg-light text-dark border px-2 py-0" style="font-size: 0.72rem;">${esc(lr.dispatchWeek || '—')}</span>
                 </td>
                 <td class="text-center">
                   <div class="mb-1">${domBadge}</div>
@@ -4651,14 +4698,14 @@
                 <td class="text-center" style="${srStyle}">${esc(sr)}</td>
                 <td class="${asmStyle}">
                   <div class="d-flex align-items-center">
-                    <i class="fa fa-chevron-right me-2 text-muted ydc-chevron-parent" id="chevron_${sr.replace(/\./g, '_')}"></i>
+                    <i class="fa fa-chevron-right me-2 text-muted ydc-chevron-parent" id="chevron_${sr.replace(/[^a-zA-Z0-9]/g, '')}"></i>
                     <i class="fa fa-cubes text-primary me-2"></i>
                     <span>${esc(lr.assemblyName || 'Assembly ' + (idx + 1))}</span>
                     ${lr.drawingNo ? `<span class="text-muted ms-2 small">(${esc(lr.drawingNo)})</span>` : ''}
                   </div>
                 </td>
                 <td class="text-center">
-                  <span class="badge bg-light text-dark border px-2 py-1 fs-6">${esc(lr.dispatchWeek || '—')}</span>
+                  <span class="badge bg-light text-dark border px-2 py-0" style="font-size: 0.72rem;">${esc(lr.dispatchWeek || '—')}</span>
                 </td>
                 <td class="text-center">—</td>
                 <td class="text-center text-primary fw-bold small">${parentCompsCount} Components</td>
@@ -4983,6 +5030,108 @@
         let wb = XLSX.utils.table_to_book(table, {sheet: "BOM"});
         XLSX.writeFile(wb, "BOM_Export.xlsx");
       };
+
+      window.copyYDCColumn = function (colIdx) {
+        let vals = [];
+        let header = $('#ydcExcelTable thead th').eq(colIdx).contents().filter(function() {
+          return this.nodeType === 3;
+        }).text().trim();
+        if (!header) header = "Column " + colIdx;
+        vals.push(header);
+
+        $('#ydcExcelTable tbody tr.ydc-excel-row').each(function () {
+          let cell = $(this).children('td').eq(colIdx);
+          let val = '';
+          if (cell.find('input').length) {
+            val = cell.find('input').val().trim();
+          } else {
+            val = cell.text().trim();
+          }
+          vals.push(val);
+        });
+
+        navigator.clipboard.writeText(vals.join('\n')).then(() => {
+          Swal.fire({ icon: 'success', title: 'Column Copied!', text: 'Column values copied to clipboard.', timer: 1500, showConfirmButton: false });
+        });
+      };
+
+      window.copyYdcRowAt = function (rowIdx) {
+        let tr = $('#ydcExcelTable tbody tr.ydc-excel-row').eq(rowIdx);
+        let row = [];
+        row.push(tr.find('.ydc-val-yscode').val().trim());
+        row.push(tr.find('.ydc-val-ysdesc').val().trim());
+        row.push(tr.find('.ydc-text-dwg').text().trim());
+        row.push(tr.find('.ydc-text-comp').text().trim());
+        row.push(tr.find('.ydc-text-qty').text().trim());
+        row.push(tr.find('.ydc-text-wt').text().trim());
+        tr.find('.ydc-val-custom').each(function () {
+          row.push($(this).val().trim());
+        });
+        navigator.clipboard.writeText(row.join('\t')).then(() => {
+          Swal.fire({ icon: 'success', title: 'Row Copied!', text: 'Row data copied to clipboard.', timer: 1500, showConfirmButton: false });
+        });
+      };
+
+      window.addYdcRowAt = function (rowIdx) {
+        let tbody = $('#ydcExcelTable tbody');
+        addYDCExcelRow();
+        let newTr = tbody.find('tr.ydc-excel-row').last();
+        let targetTr = tbody.find('tr.ydc-excel-row').eq(rowIdx);
+        if (targetTr.length) {
+          newTr.insertAfter(targetTr);
+        }
+        updateYDCExcelRowNumbers();
+      };
+
+      window.deleteYdcRowAt = function (rowIdx) {
+        $('#ydcExcelTable tbody tr.ydc-excel-row').eq(rowIdx).remove();
+        updateYDCExcelRowNumbers();
+      };
+
+      $(document).on('contextmenu', '#ydcExcelTable th, #ydcExcelTable td', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        let menu = $('#ydcContextMenu');
+        let menuHtml = '';
+        let target = $(e.target);
+
+        if (target.closest('th').length) {
+          let th = target.closest('th');
+          let colIdx = th.index();
+          let totalCols = th.closest('tr').children('th').length;
+          if (colIdx > 0 && colIdx < totalCols - 1) {
+            menuHtml = `
+              <a class="dropdown-item" onclick="addYDCColumn()"><i class="fa fa-plus me-2 text-success"></i>Add Column</a>
+              <a class="dropdown-item" onclick="copyYDCColumn(${colIdx})"><i class="fa fa-copy me-2 text-primary"></i>Copy Column</a>
+            `;
+          }
+        } else if (target.closest('td').length) {
+          let tr = target.closest('tr');
+          if (tr.hasClass('ydc-excel-row')) {
+            let rowIdx = tr.index();
+            menuHtml = `
+              <a class="dropdown-item" onclick="addYdcRowAt(${rowIdx})"><i class="fa fa-plus me-2 text-success"></i>Add Row Below</a>
+              <a class="dropdown-item" onclick="copyYdcRowAt(${rowIdx})"><i class="fa fa-copy me-2 text-primary"></i>Copy Row</a>
+              <a class="dropdown-item" onclick="deleteYdcRowAt(${rowIdx})"><i class="fa fa-trash me-2 text-danger"></i>Delete Row</a>
+            `;
+          }
+        }
+
+        if (menuHtml) {
+          menu.html(menuHtml).css({
+            display: 'block',
+            left: e.pageX + 'px',
+            top: e.pageY + 'px'
+          });
+        } else {
+          menu.hide();
+        }
+      });
+
+      $(document).on('click', function () {
+        $('#ydcContextMenu').hide();
+      });
 
       // ================================================================
       // Stage panel open / close
