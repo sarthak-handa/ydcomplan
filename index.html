@@ -199,6 +199,19 @@
       background-color: #f1f4f9 !important;
     }
 
+    /* YDComplan Assemblies Table Styling */
+    #ydcAssemblyGridTable th, #ydcAssemblyGridTable td {
+      padding: 4px 8px !important;
+    }
+    .ydc-main-row {
+      background-color: #e2e8f0 !important;
+      font-weight: bold;
+    }
+    .ydc-sub-row {
+      background-color: #ffffff !important;
+      color: #4b5563;
+    }
+
     /* --- MODALS --- */
     .modal-header {
       border-bottom: 2px solid var(--yd-primary);
@@ -4639,7 +4652,6 @@
                   <th>DRAWING NUMBER</th>
                   <th>COMPONENT NAME</th>
                   <th style="width: 80px;" class="text-center">QUANTITY</th>
-                  <th>MATERIAL</th>
                   <th style="width: 100px;" class="text-center">WEIGHT</th>
                   <th style="width: 40px;" class="text-center"><i class="fa fa-trash"></i></th>
                 </tr>
@@ -4647,31 +4659,24 @@
               <tbody>`;
 
         if (subtasks.length === 0) {
-          html += `<tr class="empty-row"><td colspan="9" class="text-center py-4 text-muted"><i class="fa fa-folder-open me-2 opacity-50"></i>No components found. Upload BOM or click Add Row to start.</td></tr>`;
+          html += `<tr class="empty-row"><td colspan="8" class="text-center py-4 text-muted"><i class="fa fa-folder-open me-2 opacity-50"></i>No components found. Upload BOM or click Add Row to start.</td></tr>`;
         } else {
           subtasks.forEach((st, i) => {
-            let ysCode = getYSCode(st.drawingNo);
-            let ysDesc = getYSDescription(st.component, st.drawingNo);
+            let ysCode = st.ysCode || getYSCode(st.drawingNo);
+            let ysDesc = st.ysDescription || getYSDescription(st.component, st.drawingNo);
             html += `
               <tr class="ydc-excel-row">
                 <td class="text-center align-middle text-muted fw-bold row-num">${i + 1}</td>
-                <td class="align-middle fw-semibold text-primary ydc-yscode-cell">${esc(ysCode)}</td>
-                <td class="align-middle fw-semibold text-dark ydc-ysdesc-cell">${esc(ysDesc)}</td>
                 <td class="align-middle">
-                  <input type="text" class="form-control form-control-sm border-0 ydc-val-dwg ydc-paste-target" data-col="0" value="${esc(st.drawingNo || '')}" oninput="recalcRowYS(this)">
+                  <input type="text" class="form-control form-control-sm border-0 ydc-val-yscode ydc-paste-target fw-semibold text-primary" data-col="0" value="${esc(ysCode)}">
                 </td>
                 <td class="align-middle">
-                  <input type="text" class="form-control form-control-sm border-0 ydc-val-comp ydc-paste-target" data-col="1" value="${esc(st.component || '')}" oninput="recalcRowYS(this)">
+                  <input type="text" class="form-control form-control-sm border-0 ydc-val-ysdesc ydc-paste-target fw-semibold text-dark" data-col="1" value="${esc(ysDesc)}">
                 </td>
-                <td class="align-middle">
-                  <input type="number" class="form-control form-control-sm border-0 text-center ydc-val-qty ydc-paste-target" data-col="2" value="${esc(st.qty || '')}">
-                </td>
-                <td class="align-middle">
-                  <input type="text" class="form-control form-control-sm border-0 ydc-val-mat ydc-paste-target" data-col="3" value="${esc(st.material || '')}">
-                </td>
-                <td class="align-middle">
-                  <input type="text" class="form-control form-control-sm border-0 text-center ydc-val-wt ydc-paste-target" data-col="4" value="${esc(st.weight || '')}">
-                </td>
+                <td class="align-middle ydc-text-dwg">${esc(st.drawingNo || '')}</td>
+                <td class="align-middle ydc-text-comp">${esc(st.component || '')}</td>
+                <td class="text-center align-middle ydc-text-qty">${esc(st.qty || '')}</td>
+                <td class="text-center align-middle ydc-text-wt">${esc(st.weight || '')}</td>
                 <td class="text-center align-middle">
                   <button class="btn btn-sm btn-outline-danger border-0 bg-transparent text-danger" onclick="deleteYDCExcelRow(this)"><i class="fa fa-times"></i></button>
                 </td>
@@ -4687,44 +4692,27 @@
         document.getElementById('ydcAssemblyComponentsExcelView').innerHTML = html;
       }
 
-      window.recalcRowYS = function (input) {
-        let tr = $(input).closest('tr');
-        let dwg = tr.find('.ydc-val-dwg').val() || '';
-        let comp = tr.find('.ydc-val-comp').val() || '';
-        
-        let ysCode = getYSCode(dwg);
-        let ysDesc = getYSDescription(comp, dwg);
-        
-        tr.find('.ydc-yscode-cell').text(ysCode);
-        tr.find('.ydc-ysdesc-cell').text(ysDesc);
-      };
+      window.recalcRowYS = function (input) {};
 
       window.addYDCExcelRow = function (st = {}) {
         let tbody = $('#ydcExcelTable tbody');
         tbody.find('.empty-row').remove();
         let trCount = tbody.find('tr').length + 1;
-        let ysCode = getYSCode(st.drawingNo);
-        let ysDesc = getYSDescription(st.component, st.drawingNo);
+        let ysCode = st.ysCode || getYSCode(st.drawingNo);
+        let ysDesc = st.ysDescription || getYSDescription(st.component, st.drawingNo);
         let tr = $(`
               <tr class="ydc-excel-row">
                 <td class="text-center align-middle text-muted fw-bold row-num">${trCount}</td>
-                <td class="align-middle fw-semibold text-primary ydc-yscode-cell">${esc(ysCode)}</td>
-                <td class="align-middle fw-semibold text-dark ydc-ysdesc-cell">${esc(ysDesc)}</td>
                 <td class="align-middle">
-                  <input type="text" class="form-control form-control-sm border-0 ydc-val-dwg ydc-paste-target" data-col="0" value="${esc(st.drawingNo || '')}" oninput="recalcRowYS(this)">
+                  <input type="text" class="form-control form-control-sm border-0 ydc-val-yscode ydc-paste-target fw-semibold text-primary" data-col="0" value="${esc(ysCode)}">
                 </td>
                 <td class="align-middle">
-                  <input type="text" class="form-control form-control-sm border-0 ydc-val-comp ydc-paste-target" data-col="1" value="${esc(st.component || '')}" oninput="recalcRowYS(this)">
+                  <input type="text" class="form-control form-control-sm border-0 ydc-val-ysdesc ydc-paste-target fw-semibold text-dark" data-col="1" value="${esc(ysDesc)}">
                 </td>
-                <td class="align-middle">
-                  <input type="number" class="form-control form-control-sm border-0 text-center ydc-val-qty ydc-paste-target" data-col="2" value="${esc(st.qty || '')}">
-                </td>
-                <td class="align-middle">
-                  <input type="text" class="form-control form-control-sm border-0 ydc-val-mat ydc-paste-target" data-col="3" value="${esc(st.material || '')}">
-                </td>
-                <td class="align-middle">
-                  <input type="text" class="form-control form-control-sm border-0 text-center ydc-val-wt ydc-paste-target" data-col="4" value="${esc(st.weight || '')}">
-                </td>
+                <td class="align-middle ydc-text-dwg">${esc(st.drawingNo || '')}</td>
+                <td class="align-middle ydc-text-comp">${esc(st.component || '')}</td>
+                <td class="text-center align-middle ydc-text-qty">${esc(st.qty || '')}</td>
+                <td class="text-center align-middle ydc-text-wt">${esc(st.weight || '')}</td>
                 <td class="text-center align-middle">
                   <button class="btn btn-sm btn-outline-danger border-0 bg-transparent text-danger" onclick="deleteYDCExcelRow(this)"><i class="fa fa-times"></i></button>
                 </td>
@@ -4748,18 +4736,20 @@
       window.saveYDCExcelTable = async function () {
         let subtasks = [];
         $('#ydcExcelTable tbody tr.ydc-excel-row').each(function () {
-          let dwg = $(this).find('.ydc-val-dwg').val().trim();
-          let comp = $(this).find('.ydc-val-comp').val().trim();
-          let qty = $(this).find('.ydc-val-qty').val().trim();
-          let mat = $(this).find('.ydc-val-mat').val().trim();
-          let wt = $(this).find('.ydc-val-wt').val().trim();
+          let ysCode = $(this).find('.ydc-val-yscode').val().trim();
+          let ysDesc = $(this).find('.ydc-val-ysdesc').val().trim();
+          let dwg = $(this).find('.ydc-text-dwg').text().trim();
+          let comp = $(this).find('.ydc-text-comp').text().trim();
+          let qty = $(this).find('.ydc-text-qty').text().trim();
+          let wt = $(this).find('.ydc-text-wt').text().trim();
 
-          if (comp || dwg || qty || mat || wt) {
+          if (ysCode || ysDesc || comp || dwg || qty || wt) {
             subtasks.push({
+              ysCode: ysCode,
+              ysDescription: ysDesc,
               component: comp,
               drawingNo: dwg,
               qty: qty,
-              material: mat,
               weight: wt
             });
           }
@@ -4792,16 +4782,15 @@
       };
 
       window.copyYDCExcelTable = function () {
-        let text = "YSCODE\tYSDESCRIPTION\tDRAWING NUMBER\tCOMPONENT NAME\tQUANTITY\tMATERIAL\tWEIGHT\n";
+        let text = "YSCODE\tYSDESCRIPTION\tDRAWING NUMBER\tCOMPONENT NAME\tQUANTITY\tWEIGHT\n";
         $('#ydcExcelTable tbody tr.ydc-excel-row').each(function () {
           let row = [];
-          row.push($(this).find('.ydc-yscode-cell').text().trim());
-          row.push($(this).find('.ydc-ysdesc-cell').text().trim());
-          row.push($(this).find('.ydc-val-dwg').val().trim());
-          row.push($(this).find('.ydc-val-comp').val().trim());
-          row.push($(this).find('.ydc-val-qty').val().trim());
-          row.push($(this).find('.ydc-val-mat').val().trim());
-          row.push($(this).find('.ydc-val-wt').val().trim());
+          row.push($(this).find('.ydc-val-yscode').val().trim());
+          row.push($(this).find('.ydc-val-ysdesc').val().trim());
+          row.push($(this).find('.ydc-text-dwg').text().trim());
+          row.push($(this).find('.ydc-text-comp').text().trim());
+          row.push($(this).find('.ydc-text-qty').text().trim());
+          row.push($(this).find('.ydc-text-wt').text().trim());
           text += row.join('\t') + '\n';
         });
         navigator.clipboard.writeText(text).then(() => {
