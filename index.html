@@ -5208,6 +5208,88 @@
           </div>
         `;
 
+      window.uploadYDCExcelBOM = function (input) {
+        let files = input.files;
+        if (!files || files.length === 0) return;
+        let file = files[0];
+
+        let proj = getP(w._ydcState.projId);
+        let loeIdx = w._ydcState.loeIdx;
+        let lr = proj && proj.loeData && proj.loeData[loeIdx];
+        if (!lr) {
+          input.value = '';
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async function (e) {
+          try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheet];
+            const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+            let subtasks = [];
+            let wtColIdx = 7;
+            let h4Val = (sheetData[3] && sheetData[3][7] !== undefined) ? String(sheetData[3][7]).trim() : '';
+            if (!h4Val) {
+              wtColIdx = 6;
+            }
+
+            for (let i = 2; i < sheetData.length; i++) {
+              const row = sheetData[i];
+              if (!row || row.length === 0) continue;
+
+              const comp = row[3] !== undefined ? String(row[3]).trim() : '';
+              const dwg = row[1] !== undefined ? String(row[1]).trim() : '';
+              const qty = row[4] !== undefined ? String(row[4]).trim() : '';
+              const mat = row[5] !== undefined ? String(row[5]).trim() : '';
+              const wt = row[wtColIdx] !== undefined ? String(row[wtColIdx]).trim() : '';
+
+              if (comp || dwg || qty || mat || wt) {
+                subtasks.push({
+                  component: comp,
+                  drawingNo: dwg,
+                  qty: qty,
+                  material: mat,
+                  weight: wt
+                });
+              }
+            }
+
+            lr.subtasks = subtasks;
+            if (subtasks.length > 0 && !lr.drawingNo) {
+              let firstDwg = subtasks.find(s => s.drawingNo)?.drawingNo;
+              if (firstDwg) {
+                lr.drawingNo = firstDwg;
+              }
+            }
+
+            if (proj.execution && proj.execution.assemblies) {
+              proj.execution.assemblies = proj.execution.assemblies.filter(x => x.loeIdx !== loeIdx);
+            }
+
+            let saveFn = window.saveProjects || (typeof saveProjects === 'function' ? saveProjects : null);
+            if (saveFn) await saveFn();
+
+            Swal.fire({
+              icon: 'success',
+              title: 'Excel Imported',
+              text: `Successfully imported ${subtasks.length} component(s) into BOM.`,
+              timer: 2000,
+              showConfirmButton: false
+            });
+
+            renderAssemblyExcelTable(proj, loeIdx);
+          } catch (err) {
+            Swal.fire('Error Parsing Excel', err.message || err, 'error');
+          }
+          input.value = '';
+        };
+        reader.readAsArrayBuffer(file);
+      };
+
         if (window.ydcActiveSubStage === 'sap') {
           let dynamicHeaders = '';
           window.ydcDynamicCols.forEach(c => {
@@ -5215,19 +5297,29 @@
           });
 
           html += `
-            <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
               <h5 class="mb-0 text-secondary"><i class="fa fa-table me-2"></i>Stage 1: BOM to SAP</h5>
-              <div class="d-flex gap-2">
+              <div class="d-flex gap-2 align-items-center flex-wrap">
                 ${!sapSent ? `
                 <button class="btn btn-primary btn-sm fw-bold" onclick="saveYDCExcelTable()" title="Save Changes">
-                  <i class="fa fa-save"></i>
+                  <i class="fa fa-save me-1"></i>Save
                 </button>
+                <button class="btn btn-outline-success btn-sm fw-bold" onclick="addYDCExcelRow()" title="Add Row">
+                  <i class="fa fa-plus me-1"></i>Add Row
+                </button>
+                <button class="btn btn-outline-success btn-sm fw-bold" onclick="addYDCColumn()" title="Add Column">
+                  <i class="fa fa-columns me-1"></i>Add Column
+                </button>
+                <button class="btn btn-outline-primary btn-sm fw-bold" onclick="document.getElementById('ydcExcelFileInput').click()" title="Upload Excel BOM">
+                  <i class="fa fa-upload me-1"></i>Upload Excel
+                </button>
+                <input type="file" id="ydcExcelFileInput" style="display: none;" accept=".xlsx, .xls, .csv" onchange="uploadYDCExcelBOM(this)">
                 ` : ''}
                 <button class="btn btn-outline-primary btn-sm fw-bold" onclick="copyYDCExcelTable()" title="Copy Table Data">
-                  <i class="fa fa-copy"></i>
+                  <i class="fa fa-copy me-1"></i>Copy
                 </button>
                 <button class="btn btn-outline-success btn-sm fw-bold" onclick="exportYDCExcelTable()" title="Export to Excel">
-                  <i class="fa fa-file-excel"></i>
+                  <i class="fa fa-file-excel me-1"></i>Export
                 </button>
                 ${!sapSent ? `
                 <button class="btn btn-info btn-sm fw-bold text-white shadow-sm" onclick="sendToSAPTeam()" title="Send to SAP Team">
