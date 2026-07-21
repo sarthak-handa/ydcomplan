@@ -5392,17 +5392,22 @@
 
         } else if (window.ydcActiveSubStage === 'sapCheck') {
           html += `
-            <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
               <div>
                 <h5 class="mb-0 text-secondary"><i class="fa fa-user-check me-2"></i>Stage 2: Review of YS Codes & YS Description</h5>
-                <small class="text-muted">Review and verify YS Codes & YS Descriptions before proceeding to Fabrication / Machining.</small>
+                <small class="text-muted">SAP Team (Yashveer & Shivam): Review and edit YS Codes & Descriptions below, then save or approve.</small>
               </div>
-              <div class="d-flex gap-2">
+              <div class="d-flex gap-2 align-items-center flex-wrap">
+                ${!sapReviewCompleted ? `
+                <button class="btn btn-primary btn-sm fw-bold" onclick="saveYDCExcelTable()" title="Save Changes">
+                  <i class="fa fa-save me-1"></i>Save
+                </button>
+                ` : ''}
                 <button class="btn btn-outline-primary btn-sm fw-bold" onclick="copyYDCExcelTable()" title="Copy Table Data">
-                  <i class="fa fa-copy"></i>
+                  <i class="fa fa-copy me-1"></i>Copy
                 </button>
                 <button class="btn btn-outline-success btn-sm fw-bold" onclick="exportYDCExcelTable()" title="Export to Excel">
-                  <i class="fa fa-file-excel"></i>
+                  <i class="fa fa-file-excel me-1"></i>Export
                 </button>
                 ${!sapReviewCompleted ? `
                 <button class="btn btn-success btn-sm fw-bold shadow-sm" onclick="approveSAPCheck()">
@@ -5439,15 +5444,19 @@
               html += `
                 <tr class="ydc-excel-row">
                   <td class="text-center align-middle text-muted fw-bold row-num">${i + 1}</td>
-                  <td class="align-middle fw-semibold text-primary ydc-text-yscode">${esc(ysCode)}</td>
-                  <td class="align-middle fw-semibold text-dark ydc-text-ysdesc">${esc(ysDesc)}</td>
+                  <td class="align-middle">
+                    <input type="text" class="form-control form-control-sm border-0 ydc-val-yscode ydc-paste-target fw-semibold text-primary" value="${esc(ysCode)}" ${sapReviewCompleted ? 'disabled' : ''}>
+                  </td>
+                  <td class="align-middle">
+                    <input type="text" class="form-control form-control-sm border-0 ydc-val-ysdesc ydc-paste-target fw-semibold text-dark" value="${esc(ysDesc)}" ${sapReviewCompleted ? 'disabled' : ''}>
+                  </td>
                   <td class="align-middle ydc-text-dwg">${esc(st.drawingNo || '')}</td>
                   <td class="align-middle ydc-text-comp">${esc(st.component || '')}</td>
                   <td class="text-center align-middle ydc-text-qty">${esc(st.qty || '')}</td>
                   <td class="text-center align-middle ydc-text-wt">${esc(st.weight || '')}</td>
                   <td class="text-center align-middle">
                     <span class="badge ${sapReviewCompleted ? 'bg-success' : 'bg-info text-dark'} px-2 py-1">
-                      ${sapReviewCompleted ? '<i class="fa fa-check me-1"></i>Verified' : '<i class="fa fa-search me-1"></i>Pending Review'}
+                      ${sapReviewCompleted ? '<i class="fa fa-check me-1"></i>Verified' : '<i class="fa fa-edit me-1"></i>Editable for Review'}
                     </span>
                   </td>
                 </tr>`;
@@ -5648,6 +5657,32 @@
           if (saveFn) await saveFn();
 
           Swal.fire({ icon: 'success', title: 'Saved!', text: 'Fabrication details saved successfully.', timer: 1500, showConfirmButton: false });
+          renderAssemblyExcelTable(proj, loeIdx);
+
+        } else if (window.ydcActiveSubStage === 'sapCheck') {
+          let subtasks = lr.subtasks || [];
+          $('#ydcExcelTable tbody tr.ydc-excel-row').each(function (idx) {
+            let ysCodeInput = $(this).find('.ydc-val-yscode');
+            let ysDescInput = $(this).find('.ydc-val-ysdesc');
+            
+            if (subtasks[idx]) {
+              if (ysCodeInput.length) subtasks[idx].ysCode = ysCodeInput.val().trim();
+              if (ysDescInput.length) subtasks[idx].ysDescription = ysDescInput.val().trim();
+            }
+          });
+
+          if (saveFn) await saveFn();
+
+          if (!proj.ydcHistory) proj.ydcHistory = [];
+          proj.ydcHistory.push({
+            loeIdx: loeIdx,
+            timestamp: new Date().toISOString(),
+            user: "SAP Team",
+            action: "YS Codes & Descriptions reviewed and saved by SAP Team."
+          });
+          if (saveFn) await saveFn();
+
+          Swal.fire({ icon: 'success', title: 'Saved!', text: 'YS Codes & Descriptions saved successfully.', timer: 1500, showConfirmButton: false });
           renderAssemblyExcelTable(proj, loeIdx);
 
         } else {
