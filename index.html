@@ -5041,13 +5041,61 @@
             loeIdx: loeIdx,
             timestamp: new Date().toISOString(),
             user: "Admin",
-            action: "BOM sent to SAP Team. Fabrication/Machining stage unlocked."
+            action: "BOM sent to SAP Team (Yashveer & Shivam), CC to sender. Stage 2 SAP Check unlocked."
           });
           if (saveFn) await saveFn();
 
           let a = proj.execution && proj.execution.assemblies.find(x => x.loeIdx === loeIdx);
           if (a) {
             (a.sap || []).forEach(item => item.status = 'submitted');
+          }
+          if (saveFn) await saveFn();
+
+          Swal.fire({
+            icon: 'success',
+            title: 'Dispatched to SAP Team',
+            html: `
+              <div class="text-center">
+                <p class="mb-2 fw-bold text-dark">BOM has been successfully sent!</p>
+                <div class="p-3 bg-light border rounded text-start small mb-2">
+                  <div class="text-primary fw-bold mb-1"><i class="fa fa-paper-plane me-1"></i> Sent to:</div>
+                  <div class="ms-3 text-dark fw-semibold">SAP Team (Yashveer & Shivam)</div>
+                  <div class="text-secondary fw-bold mt-2 mb-1"><i class="fa fa-envelope me-1"></i> CC:</div>
+                  <div class="ms-3 text-dark fw-semibold">Sender</div>
+                </div>
+                <div class="text-success small fw-bold"><i class="fa fa-unlock me-1"></i> Stage 2: Review of YS Codes & YS Description is now active.</div>
+              </div>
+            `,
+            confirmButtonText: 'Proceed to SAP Check'
+          });
+
+          window.ydcActiveSubStage = 'sapCheck';
+          renderAssemblyExcelTable(proj, loeIdx);
+        }
+      };
+
+      window.approveSAPCheck = async function () {
+        let proj = getP(w._ydcState.projId);
+        let loeIdx = w._ydcState.loeIdx;
+        let lr = proj && proj.loeData && proj.loeData[loeIdx];
+        if (lr) {
+          lr.sapReviewCompleted = true;
+          lr.sapReviewDate = new Date().toISOString();
+
+          let saveFn = window.saveProjects || (typeof saveProjects === 'function' ? saveProjects : null);
+          if (saveFn) await saveFn();
+
+          if (!proj.ydcHistory) proj.ydcHistory = [];
+          proj.ydcHistory.push({
+            loeIdx: loeIdx,
+            timestamp: new Date().toISOString(),
+            user: "Admin",
+            action: "SAP Check & YS Codes Review completed. Stage 3 Fabrication/Machining unlocked."
+          });
+          if (saveFn) await saveFn();
+
+          let a = proj.execution && proj.execution.assemblies.find(x => x.loeIdx === loeIdx);
+          if (a) {
             if (!a.fabrication || a.fabrication.length === 0) {
               a.fabrication = (lr.subtasks || []).map((st, i) => ({
                 componentId: 'comp_' + loeIdx + '_' + i,
@@ -5062,8 +5110,13 @@
 
           Swal.fire({
             icon: 'success',
-            title: 'Sent to SAP Team',
-            text: 'The BOM has been successfully sent to the SAP department. Fabrication/Machining stage is now unlocked!',
+            title: 'SAP Check Approved',
+            html: `
+              <div class="text-center">
+                <p class="mb-2 fw-bold text-dark">YS Codes & YS Descriptions verified!</p>
+                <div class="text-success small fw-bold"><i class="fa fa-unlock me-1"></i> Stage 3: Fabrication / Machining is now unlocked.</div>
+              </div>
+            `,
             timer: 2500,
             showConfirmButton: false
           });
@@ -5077,11 +5130,19 @@
         let proj = getP(w._ydcState.projId);
         let loeIdx = w._ydcState.loeIdx;
         let lr = proj && proj.loeData && proj.loeData[loeIdx];
-        if (stage === 'fabrication' && (!lr || !lr.sapSent)) {
+        if (stage === 'sapCheck' && (!lr || !lr.sapSent)) {
           Swal.fire({
             icon: 'warning',
             title: 'Stage Locked',
-            text: 'Please send the BOM to the SAP Team first to unlock Fabrication/Machining.'
+            text: 'Please send the BOM to the SAP Team (Stage 1) first to unlock Stage 2: SAP Check.'
+          });
+          return;
+        }
+        if (stage === 'fabrication' && (!lr || !lr.sapReviewCompleted)) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Stage Locked',
+            text: 'Please complete Stage 2: SAP Check (Review of YS Codes & Descriptions) first to unlock Stage 3: Fabrication/Machining.'
           });
           return;
         }
@@ -5093,28 +5154,55 @@
         let lr = proj.loeData && proj.loeData[loeIdx];
         let subtasks = lr ? (lr.subtasks || []) : [];
         let sapSent = lr && lr.sapSent;
+        let sapReviewCompleted = lr && lr.sapReviewCompleted;
 
-        window.ydcActiveSubStage = window.ydcActiveSubStage || (sapSent ? 'fabrication' : 'sap');
+        if (!window.ydcActiveSubStage) {
+          if (sapReviewCompleted) window.ydcActiveSubStage = 'fabrication';
+          else if (sapSent) window.ydcActiveSubStage = 'sapCheck';
+          else window.ydcActiveSubStage = 'sap';
+        }
 
-        let stepSapActive = window.ydcActiveSubStage === 'sap' ? 'btn-primary' : 'btn-outline-secondary';
-        let stepFabActive = window.ydcActiveSubStage === 'fabrication' ? 'btn-primary' : 'btn-outline-secondary';
-        let stepFabDisabled = sapSent ? '' : 'disabled';
-        let stepFabIcon = sapSent ? '' : '<i class="fa fa-lock ms-2 text-muted" style="font-size:0.8rem;"></i>';
+        let step1Active = window.ydcActiveSubStage === 'sap' ? 'btn-primary' : 'btn-outline-secondary';
+        let step2Active = window.ydcActiveSubStage === 'sapCheck' ? 'btn-primary' : 'btn-outline-secondary';
+        let step3Active = window.ydcActiveSubStage === 'fabrication' ? 'btn-primary' : 'btn-outline-secondary';
+
+        let step2Disabled = sapSent ? '' : 'disabled';
+        let step2Icon = sapSent ? '' : '<i class="fa fa-lock ms-1 text-muted" style="font-size:0.75rem;"></i>';
+
+        let step3Disabled = sapReviewCompleted ? '' : 'disabled';
+        let step3Icon = sapReviewCompleted ? '' : '<i class="fa fa-lock ms-1 text-muted" style="font-size:0.75rem;"></i>';
+
+        let statusBadgeText = '';
+        let statusBadgeClass = '';
+        if (sapReviewCompleted) {
+          statusBadgeText = '<i class="fa fa-check-double me-1"></i> Stage 2 SAP Check Completed (YS Codes Verified)';
+          statusBadgeClass = 'bg-success';
+        } else if (sapSent) {
+          statusBadgeText = '<i class="fa fa-paper-plane me-1"></i> Sent to SAP Team (Yashveer & Shivam) - CC to Sender';
+          statusBadgeClass = 'bg-info text-white';
+        } else {
+          statusBadgeText = '<i class="fa fa-clock me-1"></i> Stage 1: Awaiting BOM Send to SAP';
+          statusBadgeClass = 'bg-warning text-dark';
+        }
 
         let html = `
           <div class="d-flex justify-content-between align-items-center mb-4 p-2 bg-light rounded border">
-            <div class="d-flex align-items-center gap-3">
-              <button class="btn btn-sm ${stepSapActive} fw-bold" onclick="switchYdcAssemblyStage('sap')">
-                <span class="badge bg-white text-primary me-2">1</span> SAP Processing
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <button class="btn btn-sm ${step1Active} fw-bold" onclick="switchYdcAssemblyStage('sap')">
+                <span class="badge bg-white text-primary me-1">1</span> BOM to SAP
               </button>
-              <div style="width: 25px; height: 2px; background: #cbd5e1;"></div>
-              <button class="btn btn-sm ${stepFabActive} fw-bold ${stepFabDisabled}" onclick="switchYdcAssemblyStage('fabrication')">
-                <span class="badge bg-white text-primary me-2">2</span> Fabrication / Machining ${stepFabIcon}
+              <div style="width: 15px; height: 2px; background: #cbd5e1;"></div>
+              <button class="btn btn-sm ${step2Active} fw-bold ${step2Disabled}" onclick="switchYdcAssemblyStage('sapCheck')">
+                <span class="badge bg-white text-primary me-1">2</span> SAP Check (YS Review) ${step2Icon}
+              </button>
+              <div style="width: 15px; height: 2px; background: #cbd5e1;"></div>
+              <button class="btn btn-sm ${step3Active} fw-bold ${step3Disabled}" onclick="switchYdcAssemblyStage('fabrication')">
+                <span class="badge bg-white text-primary me-1">3</span> Fabrication / Machining ${step3Icon}
               </button>
             </div>
             <div>
-              <span class="badge ${sapSent ? 'bg-success' : 'bg-warning text-dark'} px-3 py-2 fw-semibold" style="font-size:0.8rem;">
-                ${sapSent ? '<i class="fa fa-check me-1"></i> SAP Processing Completed' : '<i class="fa fa-clock me-1"></i> Awaiting SAP Processing'}
+              <span class="badge ${statusBadgeClass} px-3 py-2 fw-semibold" style="font-size:0.8rem;">
+                ${statusBadgeText}
               </span>
             </div>
           </div>
@@ -5128,7 +5216,7 @@
 
           html += `
             <div class="d-flex justify-content-between align-items-center mb-3">
-              <h5 class="mb-0 text-secondary"><i class="fa fa-table me-2"></i>BOM to SAP</h5>
+              <h5 class="mb-0 text-secondary"><i class="fa fa-table me-2"></i>Stage 1: BOM to SAP</h5>
               <div class="d-flex gap-2">
                 ${!sapSent ? `
                 <button class="btn btn-primary btn-sm fw-bold" onclick="saveYDCExcelTable()" title="Save Changes">
@@ -5210,10 +5298,79 @@
               </table>
             </div>`;
 
+        } else if (window.ydcActiveSubStage === 'sapCheck') {
+          html += `
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h5 class="mb-0 text-secondary"><i class="fa fa-user-check me-2"></i>Stage 2: Review of YS Codes & YS Description</h5>
+                <small class="text-muted">Review and verify YS Codes & YS Descriptions before proceeding to Fabrication / Machining.</small>
+              </div>
+              <div class="d-flex gap-2">
+                <button class="btn btn-outline-primary btn-sm fw-bold" onclick="copyYDCExcelTable()" title="Copy Table Data">
+                  <i class="fa fa-copy"></i>
+                </button>
+                <button class="btn btn-outline-success btn-sm fw-bold" onclick="exportYDCExcelTable()" title="Export to Excel">
+                  <i class="fa fa-file-excel"></i>
+                </button>
+                ${!sapReviewCompleted ? `
+                <button class="btn btn-success btn-sm fw-bold shadow-sm" onclick="approveSAPCheck()">
+                  <i class="fa fa-check-circle me-1"></i>Approve & Unlock Stage 3 (Fabrication)
+                </button>
+                ` : `
+                <span class="badge bg-success px-3 py-2 fs-6"><i class="fa fa-check-circle me-1"></i>YS Codes Approved</span>
+                `}
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-sm table-bordered table-hover bg-white text-nowrap shadow-sm assemblies" id="ydcExcelTable" style="font-size: 0.85rem;">
+                <thead>
+                  <tr>
+                    <th style="width: 40px;" class="text-center">#</th>
+                    <th>YSCODE</th>
+                    <th>YSDESCRIPTION</th>
+                    <th>DRAWING NUMBER</th>
+                    <th>COMPONENT NAME</th>
+                    <th style="width: 80px;" class="text-center">QUANTITY</th>
+                    <th style="width: 100px;" class="text-center">WEIGHT</th>
+                    <th style="width: 140px;" class="text-center">REVIEW STATUS</th>
+                  </tr>
+                </thead>
+                <tbody>`;
+
+          if (subtasks.length === 0) {
+            html += `<tr class="empty-row"><td colspan="8" class="text-center py-4 text-muted"><i class="fa fa-folder-open me-2 opacity-50"></i>No components found.</td></tr>`;
+          } else {
+            subtasks.forEach((st, i) => {
+              let ysCode = st.ysCode || getYSCode(st.drawingNo);
+              let ysDesc = st.ysDescription || getYSDescription(st.component, st.drawingNo);
+
+              html += `
+                <tr class="ydc-excel-row">
+                  <td class="text-center align-middle text-muted fw-bold row-num">${i + 1}</td>
+                  <td class="align-middle fw-semibold text-primary ydc-text-yscode">${esc(ysCode)}</td>
+                  <td class="align-middle fw-semibold text-dark ydc-text-ysdesc">${esc(ysDesc)}</td>
+                  <td class="align-middle ydc-text-dwg">${esc(st.drawingNo || '')}</td>
+                  <td class="align-middle ydc-text-comp">${esc(st.component || '')}</td>
+                  <td class="text-center align-middle ydc-text-qty">${esc(st.qty || '')}</td>
+                  <td class="text-center align-middle ydc-text-wt">${esc(st.weight || '')}</td>
+                  <td class="text-center align-middle">
+                    <span class="badge ${sapReviewCompleted ? 'bg-success' : 'bg-info text-dark'} px-2 py-1">
+                      ${sapReviewCompleted ? '<i class="fa fa-check me-1"></i>Verified' : '<i class="fa fa-search me-1"></i>Pending Review'}
+                    </span>
+                  </td>
+                </tr>`;
+            });
+          }
+
+          html += `
+                </tbody>
+              </table>
+            </div>`;
+
         } else {
           html += `
             <div class="d-flex justify-content-between align-items-center mb-3">
-              <h5 class="mb-0 text-secondary"><i class="fa fa-industry me-2"></i>Fabrication / Machining</h5>
+              <h5 class="mb-0 text-secondary"><i class="fa fa-industry me-2"></i>Stage 3: Fabrication / Machining</h5>
               <div class="d-flex gap-2">
                 <button class="btn btn-primary btn-sm fw-bold" onclick="saveYDCExcelTable()" title="Save Changes">
                   <i class="fa fa-save"></i>
@@ -5473,6 +5630,19 @@
             row.push($(this).find('.ydc-val-date2').val().trim());
             row.push($(this).find('.ydc-val-ready1').val().trim());
             row.push($(this).find('.ydc-val-ready2').val().trim());
+            text += row.join('\t') + '\n';
+          });
+        } else if (window.ydcActiveSubStage === 'sapCheck') {
+          text = "YSCODE\tYSDESCRIPTION\tDRAWING NUMBER\tCOMPONENT NAME\tQUANTITY\tWEIGHT\tREVIEW STATUS\n";
+          $('#ydcExcelTable tbody tr.ydc-excel-row').each(function () {
+            let row = [];
+            row.push($(this).find('.ydc-text-yscode').text().trim());
+            row.push($(this).find('.ydc-text-ysdesc').text().trim());
+            row.push($(this).find('.ydc-text-dwg').text().trim());
+            row.push($(this).find('.ydc-text-comp').text().trim());
+            row.push($(this).find('.ydc-text-qty').text().trim());
+            row.push($(this).find('.ydc-text-wt').text().trim());
+            row.push($(this).find('.badge').text().trim());
             text += row.join('\t') + '\n';
           });
         } else {
