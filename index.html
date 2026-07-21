@@ -614,6 +614,22 @@
       white-space: nowrap !important;
       padding: 0.65rem 0.75rem !important;
       vertical-align: middle !important;
+      position: relative;
+    }
+
+    .ydc-col-resizer {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 8px;
+      cursor: col-resize;
+      user-select: none;
+      height: 100%;
+      z-index: 10;
+    }
+
+    .ydc-col-resizer:hover, .ydc-col-resizer.resizing {
+      background: #38bdf8 !important;
     }
 
     table.assemblies thead th, #ydcAssemblyGridTable thead th, #ydcExcelTable thead th, .ydc-table thead th {
@@ -2673,6 +2689,26 @@
         input.click();
       };
 
+      // Helper to colorize Work Week (WW) badges based on week rules
+      function getWeekColorBadge(val) {
+        if (!val || val === '-') return '<span class="badge bg-light text-dark border">-</span>';
+        let str = String(val).trim();
+        let match = str.match(/(?:WW|Wk)?\s*(\d{1,2})\b(?:\s*(\d{4}))?/i);
+        if (match) {
+          let wk = parseInt(match[1], 10);
+          let yr = match[2] ? parseInt(match[2], 10) : 2026;
+          if (yr < 2026 || (yr === 2026 && wk <= 34)) {
+            return `<span class="badge bg-danger text-white">${escapeHtml(str)}</span>`;
+          } else if (yr === 2026 && wk >= 35 && wk <= 41) {
+            return `<span class="badge bg-warning text-dark">${escapeHtml(str)}</span>`;
+          } else if (yr > 2026 || (yr === 2026 && wk >= 42)) {
+            return `<span class="badge bg-success text-white">${escapeHtml(str)}</span>`;
+          }
+        }
+        return `<span class="badge bg-light text-dark border">${escapeHtml(str)}</span>`;
+      }
+      window.getWeekColorBadge = getWeekColorBadge;
+
       window.openExcelViewer = function (projId) {
         let proj = getProject(projId);
         if (!proj || !proj.loeData || proj.loeData.length === 0) {
@@ -2691,7 +2727,7 @@
               <td class="fw-bold text-center">${item.srNo}</td>
               <td>${item.assemblyName || ''}</td>
               <td><span class="text-muted">${item.drawingNo || '-'}</span></td>
-              <td><span class="badge bg-light text-dark border">${item.dispatchWeek || '-'}</span></td>
+              <td>${getWeekColorBadge(item.dispatchWeek)}</td>
               <td><span class="text-success fw-bold">${item.billingValue ? '₹' + item.billingValue : '-'}</span></td>
             </tr>
           `);
@@ -3302,7 +3338,7 @@
                 <td class="text-center fw-bold">${item.srNo}</td>
                 <td>${item.assemblyName}</td>
                 <td><span class="text-muted">${item.drawingNo || '-'}</span></td>
-                <td><span class="badge bg-light text-dark border">${item.dispatchWeek || '-'}</span></td>
+                <td>${getWeekColorBadge(item.dispatchWeek)}</td>
                 <td><span class="text-success fw-bold">${item.billingValue ? '₹' + item.billingValue : '-'}</span></td>
                 <td><input type="text" class="form-control form-control-sm release-input paste-target" placeholder="e.g. Wk 30" data-idx="${idx}" data-col="release" value="${item.releaseWeek || ''}"></td>
               </tr>
@@ -3609,7 +3645,7 @@
             <td><span style="${srStyle}">${escapeHtml(a.srNo || "")}</span></td>
             <td><div class="${assemblyClass} d-flex align-items-center">${assemblyIcon}${escapeHtml(a.assemblyName || "")}</div></td>
             <td><code class="small fw-bold text-danger">${escapeHtml(a.drawingDocNo || "")}</code></td>
-            <td><span class="badge bg-light text-dark border">${escapeHtml(a.releaseWeek || "-")}</span></td>
+            <td>${getWeekColorBadge(a.releaseWeek)}</td>
             <td>${subtasksBtn}</td>
             <td>${viewBtnHtml}</td>
             <td class="upload-cell">
@@ -5565,7 +5601,62 @@
         }
 
         document.getElementById('ydcAssemblyComponentsExcelView').innerHTML = html;
+        initYDCColumnResizers();
       }
+
+      function initYDCColumnResizers() {
+        $('#ydcExcelTable thead th').each(function () {
+          let th = $(this);
+          if (th.find('.ydc-col-resizer').length === 0) {
+            let resizer = $('<div class="ydc-col-resizer" title="Drag to adjust column width"></div>');
+            th.append(resizer);
+          }
+        });
+      }
+
+      let _startX, _startWidth, _targetTh;
+      $(document).on('mousedown', '.ydc-col-resizer', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        _targetTh = $(this).closest('th');
+        _startX = e.pageX;
+        _startWidth = _targetTh.outerWidth();
+        $(this).addClass('resizing');
+
+        $(document).on('mousemove.ydcColResize', function (e) {
+          let diff = e.pageX - _startX;
+          let newWidth = Math.max(40, _startWidth + diff);
+          _targetTh.css({ width: newWidth + 'px', minWidth: newWidth + 'px' });
+        });
+
+        $(document).on('mouseup.ydcColResize', function () {
+          $('.ydc-col-resizer').removeClass('resizing');
+          $(document).off('mousemove.ydcColResize mouseup.ydcColResize');
+        });
+      });
+
+      window.setColumnWidth = function (colIdx) {
+        let th = $('#ydcExcelTable thead th').eq(colIdx);
+        let headerText = th.contents().filter(function() { return this.nodeType === 3; }).text().trim() || ("Column " + (colIdx + 1));
+        let currentWidth = th.outerWidth();
+
+        Swal.fire({
+          title: `Adjust Column Width`,
+          text: `Column: ${headerText}`,
+          input: 'number',
+          inputValue: currentWidth,
+          inputLabel: 'Enter width in pixels (e.g. 250, 350, 450):',
+          showCancelButton: true,
+          confirmButtonText: 'Apply Width'
+        }).then((result) => {
+          if (result.isConfirmed && result.value) {
+            let w = parseInt(result.value);
+            if (w > 30) {
+              th.css({ width: w + 'px', minWidth: w + 'px' });
+            }
+          }
+        });
+      };
 
       window.recalcRowYS = function (input) {};
 
@@ -5889,6 +5980,7 @@
             let th = target.closest('th');
             let colIdx = th.index();
             menuHtml = `
+              <a class="dropdown-item" onclick="setColumnWidth(${colIdx})"><i class="fa fa-arrows-alt-h me-2 text-info"></i>Adjust Column Width...</a>
               <a class="dropdown-item" onclick="copyYDCColumn(${colIdx})"><i class="fa fa-copy me-2 text-primary"></i>Copy Column</a>
             `;
           } else if (target.closest('td').length) {
@@ -5909,10 +6001,12 @@
             if (!sapSent && colIdx > 0 && colIdx < totalCols - 1) {
               menuHtml = `
                 <a class="dropdown-item" onclick="addYDCColumn()"><i class="fa fa-plus me-2 text-success"></i>Add Column</a>
+                <a class="dropdown-item" onclick="setColumnWidth(${colIdx})"><i class="fa fa-arrows-alt-h me-2 text-info"></i>Adjust Column Width...</a>
                 <a class="dropdown-item" onclick="copyYDCColumn(${colIdx})"><i class="fa fa-copy me-2 text-primary"></i>Copy Column</a>
               `;
             } else {
               menuHtml = `
+                <a class="dropdown-item" onclick="setColumnWidth(${colIdx})"><i class="fa fa-arrows-alt-h me-2 text-info"></i>Adjust Column Width...</a>
                 <a class="dropdown-item" onclick="copyYDCColumn(${colIdx})"><i class="fa fa-copy me-2 text-primary"></i>Copy Column</a>
               `;
             }
