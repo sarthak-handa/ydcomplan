@@ -1196,12 +1196,12 @@
                 <table class="table table-bordered table-hover assemblies mb-0" id="assembliesTable">
                   <thead>
                     <tr id="assembliesHeaderRow">
-                      <th class="sortable" data-sort-key="srNo" style="width: 60px">SR</th>
-                      <th class="sortable" data-sort-key="assemblyName">Assembly</th>
-                      <th class="sortable" data-sort-key="drawingDocNo">Doc No</th>
-                      <th class="sortable" data-sort-key="releaseWeek">Release Wk</th>
+                      <th class="sortable" data-sort-key="srNo" onclick="toggleAssembliesSort('srNo')" style="width: 60px; cursor: pointer;">SR <i class="fa fa-sort text-muted opacity-50 ms-1" style="font-size: 0.75rem;"></i></th>
+                      <th class="sortable" data-sort-key="assemblyName" onclick="toggleAssembliesSort('assemblyName')" style="cursor: pointer;">Assembly <i class="fa fa-sort text-muted opacity-50 ms-1" style="font-size: 0.75rem;"></i></th>
+                      <th class="sortable" data-sort-key="drawingDocNo" onclick="toggleAssembliesSort('drawingDocNo')" style="cursor: pointer;">Doc No <i class="fa fa-sort text-muted opacity-50 ms-1" style="font-size: 0.75rem;"></i></th>
+                      <th class="sortable" data-sort-key="releaseWeek" onclick="toggleAssembliesSort('releaseWeek')" style="cursor: pointer;">Release Wk <i class="fa fa-sort text-muted opacity-50 ms-1" style="font-size: 0.75rem;"></i></th>
                       <th style="width: 140px">Subtasks</th>
-                      <th class="sortable" data-sort-key="drawingCount">Drawings</th>
+                      <th class="sortable" data-sort-key="drawingCount" onclick="toggleAssembliesSort('drawingCount')" style="cursor: pointer;">Drawings <i class="fa fa-sort text-muted opacity-50 ms-1" style="font-size: 0.75rem;"></i></th>
                       <th class="upload-cell">Upload BOM (xl) and Drawing</th>
                     </tr>
                   </thead>
@@ -1529,7 +1529,7 @@
                   <th style="width: 100px;">SR. NO.</th>
                   <th>Assembly Name</th>
                   <th style="width: 160px;">Drawing/Doc No.</th>
-                  <th style="width: 180px;">Dispatch Week</th>
+                  <th style="width: 180px; cursor: pointer;" id="thScheduleDispatchWeek" onclick="toggleScheduleSort('dispatchWeek')">Dispatch Week <i class="fa fa-sort text-muted opacity-50 ms-1" style="font-size: 0.75rem;"></i></th>
                   <th style="width: 200px;">Billing Value INR</th>
                 </tr>
               </thead>
@@ -1565,9 +1565,9 @@
                 <th style="width: 80px" class="text-center">SR. NO.</th>
                 <th>Assembly Name</th>
                 <th>Drawing/Doc No.</th>
-                <th style="width: 150px">Dispatch Week</th>
+                <th style="width: 150px; cursor: pointer;" id="thDatesDispatchWeek" onclick="toggleDatesSort('dispatchWeek')">Dispatch Week <i class="fa fa-sort text-muted opacity-50 ms-1" style="font-size: 0.75rem;"></i></th>
                 <th style="width: 150px">Billing Value INR</th>
-                <th style="width: 180px">Drawing Release Week</th>
+                <th style="width: 180px; cursor: pointer;" id="thDatesReleaseWeek" onclick="toggleDatesSort('releaseWeek')">Drawing Release Week <i class="fa fa-sort text-muted opacity-50 ms-1" style="font-size: 0.75rem;"></i></th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -2709,6 +2709,20 @@
       }
       window.getWeekColorBadge = getWeekColorBadge;
 
+      // Helper to parse Work Week string to numerical value for sorting
+      function parseWeekValue(val) {
+        if (!val || val === '-') return 999999;
+        let str = String(val).trim();
+        let match = str.match(/(?:WW|Wk)?\s*(\d{1,2})\b(?:\s*(\d{4}))?/i);
+        if (match) {
+          let wk = parseInt(match[1], 10);
+          let yr = match[2] ? parseInt(match[2], 10) : 2026;
+          return yr * 100 + wk;
+        }
+        return 999999;
+      }
+      window.parseWeekValue = parseWeekValue;
+
       window.openExcelViewer = function (projId) {
         let proj = getProject(projId);
         if (!proj || !proj.loeData || proj.loeData.length === 0) {
@@ -3225,14 +3239,67 @@
         reader.readAsArrayBuffer(loeFile);
       });
 
-      // Prepare Schedule (Stage 7 -> 8)
-      $(document).on('click', '.btn-schedule', function () {
-        currentProjectId = $(this).data('id');
-        var proj = getProject(currentProjectId);
+      // Modal sorting states
+      let scheduleSortAsc = true;
+      let datesSortKey = null;
+      let datesSortAsc = true;
 
+      window.toggleScheduleSort = function(key) {
+        var proj = getProject(currentProjectId);
+        if (!proj || !proj.loeData) return;
+        
+        // Save current input values first
+        $('.dispatch-input').each(function () {
+          var idx = $(this).data('idx');
+          proj.loeData[idx].dispatchWeek = $(this).val();
+        });
+        $('.billing-input').each(function () {
+          var idx = $(this).data('idx');
+          proj.loeData[idx].billingValue = $(this).val();
+        });
+
+        scheduleSortAsc = !scheduleSortAsc;
+        proj.loeData.sort((a, b) => {
+          let valA = parseWeekValue(a.dispatchWeek);
+          let valB = parseWeekValue(b.dispatchWeek);
+          return scheduleSortAsc ? valA - valB : valB - valA;
+        });
+
+        $('#thScheduleDispatchWeek').html(`Dispatch Week <i class="fa fa-sort-${scheduleSortAsc ? 'up' : 'down'} text-primary ms-1"></i>`);
+        renderScheduleModalRows(proj);
+      };
+
+      window.toggleDatesSort = function(key) {
+        var proj = getProject(currentProjectId);
+        if (!proj || !proj.loeData) return;
+
+        // Save current input values first
+        $('.release-input').each(function () {
+          var idx = $(this).data('idx');
+          proj.loeData[idx].releaseWeek = $(this).val();
+        });
+
+        if (datesSortKey === key) {
+          datesSortAsc = !datesSortAsc;
+        } else {
+          datesSortKey = key;
+          datesSortAsc = true;
+        }
+
+        proj.loeData.sort((a, b) => {
+          let valA = parseWeekValue(a[key]);
+          let valB = parseWeekValue(b[key]);
+          return datesSortAsc ? valA - valB : valB - valA;
+        });
+
+        $('#thDatesDispatchWeek').html(`Dispatch Week ${key === 'dispatchWeek' ? `<i class="fa fa-sort-${datesSortAsc ? 'up' : 'down'} text-primary ms-1"></i>` : `<i class="fa fa-sort text-muted opacity-50 ms-1" style="font-size: 0.75rem;"></i>`}`);
+        $('#thDatesReleaseWeek').html(`Drawing Release Week ${key === 'releaseWeek' ? `<i class="fa fa-sort-${datesSortAsc ? 'up' : 'down'} text-primary ms-1"></i>` : `<i class="fa fa-sort text-muted opacity-50 ms-1" style="font-size: 0.75rem;"></i>`}`);
+        renderDatesModalRows(proj);
+      };
+
+      function renderScheduleModalRows(proj) {
         var tbody = $('#scheduleTable tbody');
         tbody.empty();
-
         if (proj && proj.loeData && proj.loeData.length > 0) {
           proj.loeData.forEach(function (item, idx) {
             tbody.append(`
@@ -3252,11 +3319,36 @@
             `);
           });
           $('#scheduleTotalRow').text(proj.loeData.length + " Items loaded from LOE");
-        } else {
-          tbody.append('<tr><td colspan="5" class="text-center text-muted py-5"><i class="fa fa-folder-open fs-2 mb-3"></i><br>No LOE data found. Please ensure the LOE was uploaded correctly in the previous step.</td></tr>');
-          $('#scheduleTotalRow').text("0 Items");
         }
+      }
 
+      function renderDatesModalRows(proj) {
+        var tbody = $('#datesTable tbody');
+        tbody.empty();
+        if (proj && proj.loeData && proj.loeData.length > 0) {
+          proj.loeData.forEach(function (item, idx) {
+            tbody.append(`
+              <tr>
+                <td class="text-center fw-bold text-muted">${item.autoId}</td>
+                <td class="text-center fw-bold">${item.srNo}</td>
+                <td>${item.assemblyName}</td>
+                <td><span class="text-muted">${item.drawingNo || '-'}</span></td>
+                <td>${getWeekColorBadge(item.dispatchWeek)}</td>
+                <td><span class="text-success fw-bold">${item.billingValue ? '₹' + item.billingValue : '-'}</span></td>
+                <td><input type="text" class="form-control form-control-sm release-input paste-target" placeholder="e.g. Wk 30" data-idx="${idx}" data-col="release" value="${item.releaseWeek || ''}"></td>
+              </tr>
+            `);
+          });
+          $('#datesTotalRow').text(proj.loeData.length + " Items loaded from LOE");
+        }
+      }
+
+      // Prepare Schedule (Stage 7 -> 8)
+      $(document).on('click', '.btn-schedule', function () {
+        currentProjectId = $(this).data('id');
+        var proj = getProject(currentProjectId);
+        $('#thScheduleDispatchWeek').html(`Dispatch Week <i class="fa fa-sort text-muted opacity-50 ms-1" style="font-size: 0.75rem;"></i>`);
+        renderScheduleModalRows(proj);
         $('#scheduleModal').modal('show');
       });
 
@@ -3326,30 +3418,9 @@
       $(document).on('click', '.btn-dates', function () {
         currentProjectId = $(this).data('id');
         var proj = getProject(currentProjectId);
-
-        var tbody = $('#datesTable tbody');
-        tbody.empty();
-
-        if (proj && proj.loeData && proj.loeData.length > 0) {
-          proj.loeData.forEach(function (item, idx) {
-            tbody.append(`
-              <tr>
-                <td class="text-center fw-bold text-muted">${item.autoId}</td>
-                <td class="text-center fw-bold">${item.srNo}</td>
-                <td>${item.assemblyName}</td>
-                <td><span class="text-muted">${item.drawingNo || '-'}</span></td>
-                <td>${getWeekColorBadge(item.dispatchWeek)}</td>
-                <td><span class="text-success fw-bold">${item.billingValue ? '₹' + item.billingValue : '-'}</span></td>
-                <td><input type="text" class="form-control form-control-sm release-input paste-target" placeholder="e.g. Wk 30" data-idx="${idx}" data-col="release" value="${item.releaseWeek || ''}"></td>
-              </tr>
-            `);
-          });
-          $('#datesTotalRow').text(proj.loeData.length + " Items loaded from LOE");
-        } else {
-          tbody.append('<tr><td colspan="7" class="text-center text-muted py-5"><i class="fa fa-folder-open fs-2 mb-3"></i><br>No LOE data found. Please ensure the LOE was uploaded correctly in the previous steps.</td></tr>');
-          $('#datesTotalRow').text("0 Items");
-        }
-
+        $('#thDatesDispatchWeek').html(`Dispatch Week <i class="fa fa-sort text-muted opacity-50 ms-1" style="font-size: 0.75rem;"></i>`);
+        $('#thDatesReleaseWeek').html(`Drawing Release Week <i class="fa fa-sort text-muted opacity-50 ms-1" style="font-size: 0.75rem;"></i>`);
+        renderDatesModalRows(proj);
         $('#datesModal').modal('show');
       });
 
@@ -3659,17 +3730,67 @@
           </tr>`;
     };
 
+    let assembliesSortKey = null;
+    let assembliesSortAsc = true;
+
+    window.toggleAssembliesSort = function(key) {
+      if (assembliesSortKey === key) {
+        assembliesSortAsc = !assembliesSortAsc;
+      } else {
+        assembliesSortKey = key;
+        assembliesSortAsc = true;
+      }
+      renderAssemblies();
+    };
+
     window.renderAssemblies = function () {
       const filter = (document.getElementById("filterText").value || "").trim().toLowerCase();
       const pendingOnly = document.getElementById("filterPendingOnly").checked;
 
-      const filtered = allAssemblies.filter((a) => {
-        if (a.isSection) return true; // Keep headers for now
+      let filtered = allAssemblies.filter((a) => {
+        if (a.isSection) return true;
         const isReleased = (a.drawingFiles || []).length > 0;
         if (pendingOnly && isReleased) return false;
         if (!filter) return true;
         const hay = [a.projectNo, a.assemblyName, a.drawingDocNo, a.srNo].map(v => String(v || "").toLowerCase()).join(" ");
         return hay.includes(filter);
+      });
+
+      if (assembliesSortKey) {
+        let sections = filtered.filter(a => a.isSection);
+        let items = filtered.filter(a => !a.isSection);
+        items.sort((a, b) => {
+          let valA = a[assembliesSortKey];
+          let valB = b[assembliesSortKey];
+          if (assembliesSortKey === 'releaseWeek') {
+            valA = parseWeekValue(valA);
+            valB = parseWeekValue(valB);
+          } else if (assembliesSortKey === 'drawingCount') {
+            valA = (a.drawingFiles || []).length;
+            valB = (b.drawingFiles || []).length;
+          } else if (typeof valA === 'string') {
+            valA = valA.toLowerCase();
+            valB = (valB || '').toLowerCase();
+          }
+          if (valA < valB) return assembliesSortAsc ? -1 : 1;
+          if (valA > valB) return assembliesSortAsc ? 1 : -1;
+          return 0;
+        });
+        filtered = items;
+      }
+
+      // Update header icons
+      ['srNo', 'assemblyName', 'drawingDocNo', 'releaseWeek', 'drawingCount'].forEach(k => {
+        let th = document.querySelector(`#assembliesHeaderRow th[data-sort-key="${k}"]`);
+        if (th) {
+          let label = th.dataset.label || th.textContent.replace(/[▲▼\s]/g, '');
+          th.dataset.label = label;
+          if (assembliesSortKey === k) {
+            th.innerHTML = `${label} <i class="fa fa-sort-${assembliesSortAsc ? 'up' : 'down'} text-warning ms-1"></i>`;
+          } else {
+            th.innerHTML = `${label} <i class="fa fa-sort text-muted opacity-50 ms-1" style="font-size: 0.75rem;"></i>`;
+          }
+        }
       });
 
       // Compute Stats
@@ -3690,7 +3811,6 @@
       let html = "";
       let sIdx = 0;
 
-      // Very basic grouped rendering for prototype
       filtered.forEach(a => {
         if (a.isSection) {
           html += `<tr class="section-divider"><td colspan="7">${escapeHtml(a.assemblyName)}</td></tr>`;
@@ -3701,7 +3821,6 @@
           let key = isChild ? sr.split('.')[0] : sr;
           let kSafe = `s${sIdx}_${key}`;
 
-          // Determine if parent has children loosely by checking if any assembly has this key as prefix
           let hasChildren = false;
           if (!isChild) {
             hasChildren = filtered.some(x => !x.isSection && String(x.srNo).startsWith(sr + "."));
@@ -3710,7 +3829,7 @@
           html += rowHtml(a, {
             isParent: !isChild,
             hasChildren: hasChildren,
-            startOpen: filter.length > 0 || true, // Default open for demo
+            startOpen: filter.length > 0 || true,
             parentKey: kSafe
           });
         }
