@@ -4924,6 +4924,16 @@
         let asc = table.data('sort-asc-' + colIdx) !== true;
         table.data('sort-asc-' + colIdx, asc);
 
+        // Update header icons
+        table.find('thead th').each(function (idx) {
+          let icon = $(this).find('i.fa-sort, i.fa-sort-up, i.fa-sort-down');
+          if (idx === colIdx) {
+            icon.removeClass('fa-sort fa-sort-up fa-sort-down opacity-50').addClass(asc ? 'fa-sort-up text-warning' : 'fa-sort-down text-warning');
+          } else {
+            icon.removeClass('fa-sort-up fa-sort-down text-warning').addClass('fa-sort opacity-50');
+          }
+        });
+
         let parentTrs = tbody.find('tr.ydc-main-row').get();
         let groups = [];
 
@@ -4940,6 +4950,12 @@
         groups.sort(function (a, b) {
           let keyA = $(a.parent).children('td').eq(colIdx).text().trim();
           let keyB = $(b.parent).children('td').eq(colIdx).text().trim();
+
+          if (colIdx === 2) { // Dispatch Week column
+            let valA = parseWeekValue(keyA);
+            let valB = parseWeekValue(keyB);
+            return asc ? valA - valB : valB - valA;
+          }
 
           let numA = parseFloat(keyA.replace(/[^0-9.]/g, ''));
           let numB = parseFloat(keyB.replace(/[^0-9.]/g, ''));
@@ -4983,14 +4999,14 @@
             <table class="table table-hover table-bordered mb-0 align-middle shadow-sm bg-white assemblies" id="ydcAssemblyGridTable" style="border-radius: 8px; overflow: hidden; width: 100%;">
               <thead>
                 <tr>
-                  <th style="width: 140px; text-align: center;" onclick="sortYdcTable(0)">
+                  <th style="width: 140px; text-align: center; cursor: pointer;" onclick="sortYdcTable(0)">
                     <button class="btn btn-sm btn-light border-0 py-0 px-1 me-1 fw-bold" onclick="event.stopPropagation(); toggleAllYdcRows(this)" id="ydcBtnToggleAll" title="Collapse/Expand All" style="font-size: 0.75rem;"><i class="fa fa-plus"></i></button>
                     SR <i class="fa fa-sort ms-1 opacity-50"></i>
                   </th>
-                  <th onclick="sortYdcTable(1)">ASSEMBLY / SUBASSEMBLY <i class="fa fa-sort ms-1 opacity-50"></i></th>
-                  <th style="width: 170px; text-align: center;" onclick="sortYdcTable(2)">DISPATCH WK <i class="fa fa-sort ms-1 opacity-50"></i></th>
-                  <th style="width: 180px; text-align: center;" onclick="sortYdcTable(3)">EXECUTION STATUS <i class="fa fa-sort ms-1 opacity-50"></i></th>
-                  <th style="width: 150px; text-align: center;" onclick="sortYdcTable(4)">ACTION <i class="fa fa-sort ms-1 opacity-50"></i></th>
+                  <th style="cursor: pointer;" onclick="sortYdcTable(1)">ASSEMBLY / SUBASSEMBLY <i class="fa fa-sort ms-1 opacity-50"></i></th>
+                  <th style="width: 170px; text-align: center; cursor: pointer;" onclick="sortYdcTable(2)">DISPATCH WK <i class="fa fa-sort ms-1 opacity-50"></i></th>
+                  <th style="width: 180px; text-align: center; cursor: pointer;" onclick="sortYdcTable(3)">EXECUTION STATUS <i class="fa fa-sort ms-1 opacity-50"></i></th>
+                  <th style="width: 150px; text-align: center; cursor: pointer;" onclick="sortYdcTable(4)">ACTION <i class="fa fa-sort ms-1 opacity-50"></i></th>
                 </tr>
               </thead>
               <tbody>`;
@@ -5031,7 +5047,7 @@
                   </div>
                 </td>
                 <td class="text-center">
-                  <span class="badge bg-light text-dark border px-2 py-0" style="font-size: 0.72rem;">${esc(lr.dispatchWeek || '—')}</span>
+                  ${getWeekColorBadge(lr.dispatchWeek)}
                 </td>
                 <td class="text-center">
                   <div class="mb-1">${domBadge}</div>
@@ -5057,7 +5073,7 @@
                   </div>
                 </td>
                 <td class="text-center">
-                  <span class="badge bg-light text-dark border px-2 py-0" style="font-size: 0.72rem;">${esc(lr.dispatchWeek || '—')}</span>
+                  ${getWeekColorBadge(lr.dispatchWeek)}
                 </td>
                 <td class="text-center">—</td>
                 <td class="text-center text-primary fw-bold small">${parentCompsCount} Components</td>
