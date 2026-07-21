@@ -3699,6 +3699,11 @@
               const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
               let subtasks = [];
+              let wtColIdx = 7;
+              let h4Val = (sheetData[3] && sheetData[3][7] !== undefined) ? String(sheetData[3][7]).trim() : '';
+              if (!h4Val) {
+                wtColIdx = 6;
+              }
               for (let i = 2; i < sheetData.length; i++) {
                 const row = sheetData[i];
                 if (!row || row.length === 0) continue;
@@ -3707,7 +3712,7 @@
                 const dwg = row[1] !== undefined ? String(row[1]).trim() : '';
                 const qty = row[4] !== undefined ? String(row[4]).trim() : '';
                 const mat = row[5] !== undefined ? String(row[5]).trim() : '';
-                const wt = row[7] !== undefined ? String(row[7]).trim() : '';
+                const wt = row[wtColIdx] !== undefined ? String(row[wtColIdx]).trim() : '';
 
                 if (comp || dwg || qty || mat || wt) {
                   subtasks.push({
@@ -4017,17 +4022,21 @@
         const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
         let count = 0;
-        // Ignore Row 1 and 2 (index 0 and 1), start from index 2 (row 3)
+        let wtColIdx = 7;
+        let h4Val = (sheetData[3] && sheetData[3][7] !== undefined) ? String(sheetData[3][7]).trim() : '';
+        if (!h4Val) {
+          wtColIdx = 6;
+        }
         for (let i = 2; i < sheetData.length; i++) {
           const row = sheetData[i];
           if (!row || row.length === 0) continue;
 
-          // D (col 3) Component, B (col 1) Drawing Number, E (col 4) Qty, F (col 5) Material, H (col 7) Weight
+          // D (col 3) Component, B (col 1) Drawing Number, E (col 4) Qty, F (col 5) Material, H (col 7) / G (col 6) Weight
           const comp = row[3] !== undefined ? String(row[3]).trim() : '';
           const dwg = row[1] !== undefined ? String(row[1]).trim() : '';
           const qty = row[4] !== undefined ? String(row[4]).trim() : '';
           const mat = row[5] !== undefined ? String(row[5]).trim() : '';
-          const wt = row[7] !== undefined ? String(row[7]).trim() : '';
+          const wt = row[wtColIdx] !== undefined ? String(row[wtColIdx]).trim() : '';
 
           if (comp || dwg || qty || mat || wt) {
             addSubtaskRow({
@@ -4170,6 +4179,11 @@
                 const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
                 let subtasks = [];
+                let wtColIdx = 7;
+                let h4Val = (sheetData[3] && sheetData[3][7] !== undefined) ? String(sheetData[3][7]).trim() : '';
+                if (!h4Val) {
+                  wtColIdx = 6;
+                }
                 for (let i = 2; i < sheetData.length; i++) {
                   const row = sheetData[i];
                   if (!row || row.length === 0) continue;
@@ -4178,7 +4192,7 @@
                   const dwg = row[1] !== undefined ? String(row[1]).trim() : '';
                   const qty = row[4] !== undefined ? String(row[4]).trim() : '';
                   const mat = row[5] !== undefined ? String(row[5]).trim() : '';
-                  const wt = row[7] !== undefined ? String(row[7]).trim() : '';
+                  const wt = row[wtColIdx] !== undefined ? String(row[wtColIdx]).trim() : '';
 
                   if (comp || dwg || qty || mat || wt) {
                     subtasks.push({
