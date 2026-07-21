@@ -597,20 +597,26 @@
       overflow: hidden;
     }
 
-    table.assemblies thead {
-      background: var(--yd-primary);
+    table.assemblies, #ydcAssemblyGridTable, #ydcExcelTable, .ydc-table {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
 
-    table.assemblies th {
-      background: var(--yd-primary) !important;
+    table.assemblies thead, #ydcAssemblyGridTable thead, #ydcExcelTable thead, .ydc-table thead {
+      background: #2a5071 !important;
+    }
+
+    table.assemblies th, #ydcAssemblyGridTable th, #ydcExcelTable th, .ydc-table th {
+      background: #2a5071 !important;
       color: #fff !important;
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      white-space: nowrap;
+      font-size: 0.78rem !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.5px !important;
+      white-space: nowrap !important;
+      padding: 0.65rem 0.75rem !important;
+      vertical-align: middle !important;
     }
 
-    table.assemblies thead th {
+    table.assemblies thead th, #ydcAssemblyGridTable thead th, #ydcExcelTable thead th, .ydc-table thead th {
       border-color: rgba(255, 255, 255, 0.28) !important;
     }
 
@@ -653,9 +659,16 @@
       display: none !important;
     }
 
-    table.assemblies td {
-      font-size: 0.85rem;
-      vertical-align: middle;
+    table.assemblies td, #ydcAssemblyGridTable td, #ydcExcelTable td, .ydc-table td {
+      font-size: 0.85rem !important;
+      vertical-align: middle !important;
+      padding: 0.55rem 0.75rem !important;
+    }
+
+    #ydcExcelTable input.form-control-sm {
+      font-size: 0.85rem !important;
+      padding: 0.25rem 0.4rem !important;
+      height: 32px !important;
     }
 
     .drawing-list {
@@ -4812,17 +4825,17 @@
 
         let html = `
           <div class="table-responsive">
-            <table class="table table-hover table-bordered mb-0 align-middle shadow-sm bg-white" id="ydcAssemblyGridTable" style="border-radius: 8px; overflow: hidden; width: 100%;">
-              <thead class="table-light">
+            <table class="table table-hover table-bordered mb-0 align-middle shadow-sm bg-white assemblies" id="ydcAssemblyGridTable" style="border-radius: 8px; overflow: hidden; width: 100%;">
+              <thead>
                 <tr>
                   <th style="width: 140px; text-align: center;" onclick="sortYdcTable(0)">
                     <button class="btn btn-sm btn-light border-0 py-0 px-1 me-1 fw-bold" onclick="event.stopPropagation(); toggleAllYdcRows(this)" id="ydcBtnToggleAll" title="Collapse/Expand All" style="font-size: 0.75rem;"><i class="fa fa-plus"></i></button>
-                    Serial Number <i class="fa fa-sort ms-1 opacity-50"></i>
+                    SR <i class="fa fa-sort ms-1 opacity-50"></i>
                   </th>
-                  <th onclick="sortYdcTable(1)">Assembly / Subassembly <i class="fa fa-sort ms-1 opacity-50"></i></th>
-                  <th style="width: 170px; text-align: center;" onclick="sortYdcTable(2)">Dispatch Week <i class="fa fa-sort ms-1 opacity-50"></i></th>
-                  <th style="width: 180px; text-align: center;" onclick="sortYdcTable(3)">Execution Status <i class="fa fa-sort ms-1 opacity-50"></i></th>
-                  <th style="width: 150px; text-align: center;" onclick="sortYdcTable(4)">Action <i class="fa fa-sort ms-1 opacity-50"></i></th>
+                  <th onclick="sortYdcTable(1)">ASSEMBLY / SUBASSEMBLY <i class="fa fa-sort ms-1 opacity-50"></i></th>
+                  <th style="width: 170px; text-align: center;" onclick="sortYdcTable(2)">DISPATCH WK <i class="fa fa-sort ms-1 opacity-50"></i></th>
+                  <th style="width: 180px; text-align: center;" onclick="sortYdcTable(3)">EXECUTION STATUS <i class="fa fa-sort ms-1 opacity-50"></i></th>
+                  <th style="width: 150px; text-align: center;" onclick="sortYdcTable(4)">ACTION <i class="fa fa-sort ms-1 opacity-50"></i></th>
                 </tr>
               </thead>
               <tbody>`;
@@ -4834,7 +4847,6 @@
           let done = a ? comps.filter(c => c.status === 'submitted').length : 0;
           let pct = total > 0 ? Math.round(done / total * 100) : 0;
 
-          // Dominant stage badge
           let domBadge = '<span class="badge bg-secondary" style="font-size:0.75rem;">Not Started</span>';
           if (a) {
             for (let si = YDC_STAGES.length - 1; si >= 0; si--) {
@@ -4850,19 +4862,17 @@
           let isChild = sr.includes('.');
           let parentPrefix = sr.split('.')[0];
           
-          let srStyle = isChild ? 'color: #6f42c1; font-weight: 500;' : 'color: #0d6efd; font-weight: bold; font-size: 0.95rem;';
-          let asmStyle = isChild ? 'ps-4 text-secondary' : 'fw-bold text-dark';
-          let asmIcon = isChild ? '<i class="fa fa-level-up-alt fa-rotate-90 text-muted me-2"></i>' : '';
+          let srStyle = isChild ? 'color: #6f42c1; font-weight: 500;' : 'color: #d9534f; font-weight: 500;';
 
           if (isChild) {
             html += `
-              <tr class="ydc-sub-row ydc-child-of-${parentPrefix.replace(/[^a-zA-Z0-9]/g, '')}" onclick="openYDComplanAssemblyDetailsModal('${proj.id}', ${idx})" style="cursor: pointer; transition: background-color 0.15s; display: none;" title="Click to open details & progress history for ${esc(lr.assemblyName || '')}">
-                <td class="text-center" style="${srStyle}">${esc(sr)}</td>
-                <td class="${asmStyle}">
-                  <div class="d-flex align-items-center">
-                    ${asmIcon}
+              <tr class="ydc-sub-row child-row ydc-child-of-${parentPrefix.replace(/[^a-zA-Z0-9]/g, '')}" onclick="openYDComplanAssemblyDetailsModal('${proj.id}', ${idx})" style="cursor: pointer; transition: background-color 0.15s; display: none;" title="Click to open details & progress history for ${esc(lr.assemblyName || '')}">
+                <td class="text-center"><span style="${srStyle}">${esc(sr)}</span></td>
+                <td>
+                  <div class="d-flex align-items-center text-secondary fw-normal">
+                    <i class="fa fa-clipboard-check text-primary opacity-75 me-2 ms-4"></i>
                     <span>${esc(lr.assemblyName || 'Assembly ' + (idx + 1))}</span>
-                    ${lr.drawingNo ? `<span class="text-muted ms-2 small">(${esc(lr.drawingNo)})</span>` : ''}
+                    ${lr.drawingNo ? `<code class="small fw-bold text-danger ms-2">${esc(lr.drawingNo)}</code>` : ''}
                   </div>
                 </td>
                 <td class="text-center">
@@ -4882,14 +4892,13 @@
           } else {
             let parentCompsCount = getComponentsCount(proj, sr);
             html += `
-              <tr class="ydc-main-row" onclick="toggleYdcRow('${sr}')" style="cursor: pointer; transition: background-color 0.15s;" title="Click to toggle subassemblies">
-                <td class="text-center" style="${srStyle}">${esc(sr)}</td>
-                <td class="${asmStyle}">
-                  <div class="d-flex align-items-center">
-                    <i class="fa fa-chevron-right me-2 text-muted ydc-chevron-parent" id="chevron_${sr.replace(/[^a-zA-Z0-9]/g, '')}"></i>
-                    <i class="fa fa-cubes text-primary me-2"></i>
+              <tr class="ydc-main-row parent-row sr-whole-row" onclick="toggleYdcRow('${sr}')" style="cursor: pointer; transition: background-color 0.15s;" title="Click to toggle subassemblies">
+                <td class="text-center"><span style="${srStyle}">${esc(sr)}</span></td>
+                <td>
+                  <div class="d-flex align-items-center text-dark fw-normal">
+                    <span class="toggle-chevron me-2 text-dark"><i class="fa fa-chevron-right ydc-chevron-parent" id="chevron_${sr.replace(/[^a-zA-Z0-9]/g, '')}"></i></span>
                     <span>${esc(lr.assemblyName || 'Assembly ' + (idx + 1))}</span>
-                    ${lr.drawingNo ? `<span class="text-muted ms-2 small">(${esc(lr.drawingNo)})</span>` : ''}
+                    ${lr.drawingNo ? `<code class="small fw-bold text-danger ms-2">${esc(lr.drawingNo)}</code>` : ''}
                   </div>
                 </td>
                 <td class="text-center">
