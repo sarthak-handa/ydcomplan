@@ -1130,7 +1130,7 @@
                 <button class="btn btn-success btn-sm fw-bold" onclick="document.getElementById('globalBOMUploadInput').click()">
                   <i class="fa fa-file-excel me-1"></i> Upload BOMs
                 </button>
-                <input type="file" id="globalBOMUploadInput" style="display: none;" accept=".xlsx, .xls" multiple onchange="handleGlobalBOMUpload(this)">
+                <input type="file" id="globalBOMUploadInput" style="display: none;" accept=".xlsx, .xls, .pdf" multiple onchange="handleGlobalBOMUpload(this)">
                 <button class="btn btn-outline-secondary btn-sm fw-bold" onclick="showDashboardView()">
                   <i class="fa fa-arrow-left me-1"></i>Back to Kick-Off
                 </button>
@@ -1170,11 +1170,10 @@
                       <th class="sortable" data-sort-key="srNo" style="width: 60px">SR</th>
                       <th class="sortable" data-sort-key="assemblyName">Assembly</th>
                       <th class="sortable" data-sort-key="drawingDocNo">Doc No</th>
-                      <th class="sortable" data-sort-key="dispatchWeek">Dispatch Wk</th>
                       <th class="sortable" data-sort-key="releaseWeek">Release Wk</th>
                       <th style="width: 140px">Subtasks</th>
                       <th class="sortable" data-sort-key="drawingCount">Drawings</th>
-                      <th class="upload-cell">Upload</th>
+                      <th class="upload-cell">Upload BOM (xl) and Drawing</th>
                     </tr>
                   </thead>
                   <tbody id="assembliesBody"></tbody>
@@ -1857,6 +1856,40 @@
         </div>
         <div class="modal-footer bg-light">
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Upload Mapping Confirmation Modal -->
+  <div class="modal fade" id="bulkUploadMappingModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+      <div class="modal-content shadow-lg border-0" style="border-radius: 12px;">
+        <div class="modal-header bg-dark text-white">
+          <h5 class="modal-title"><i class="fa fa-map-marked-alt me-2 text-warning"></i>Confirm Bulk Upload Mapping</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-3 bg-light">
+          <p class="text-muted small mb-3">Review the mapped assemblies for each file. You can change the mapping dropdown if a file name does not match the drawing/doc number.</p>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover table-bordered bg-white align-middle" id="bulkUploadMappingTable" style="font-size: 0.85rem;">
+              <thead class="table-dark">
+                <tr>
+                  <th>File Name</th>
+                  <th style="width: 100px;">Type</th>
+                  <th>Mapped Assembly / Drawing Number</th>
+                  <th style="width: 120px;" class="text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody id="bulkUploadMappingBody">
+                <!-- Injected dynamically by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer bg-light border-top">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-success btn-sm fw-bold" onclick="submitBulkUploadMapping()"><i class="fa fa-check-circle me-1"></i>Confirm & Submit Upload</button>
         </div>
       </div>
     </div>
@@ -3529,7 +3562,7 @@
       if (a.isSection) {
         return `
               <tr class="section-divider">
-                <td colspan="8">${escapeHtml(a.assemblyName)}</td>
+                <td colspan="7">${escapeHtml(a.assemblyName)}</td>
               </tr>
             `;
       }
@@ -3563,13 +3596,12 @@
             <td><span style="${srStyle}">${escapeHtml(a.srNo || "")}</span></td>
             <td><div class="${assemblyClass} d-flex align-items-center">${assemblyIcon}${escapeHtml(a.assemblyName || "")}</div></td>
             <td><code class="small fw-bold text-danger">${escapeHtml(a.drawingDocNo || "")}</code></td>
-            <td><span class="badge bg-light text-dark border">${escapeHtml(a.dispatchWeek || "-")}</span></td>
             <td><span class="badge bg-light text-dark border">${escapeHtml(a.releaseWeek || "-")}</span></td>
             <td>${subtasksBtn}</td>
             <td>${viewBtnHtml}</td>
             <td class="upload-cell">
               <div class="d-flex align-items-center gap-2">
-                <input type="file" multiple class="form-control form-control-sm w-75" id="drawingInput_${a._id}">
+                <input type="file" multiple accept=".pdf,.xlsx,.xls,.csv" class="form-control form-control-sm w-75" id="drawingInput_${a._id}">
                 <button type="button" class="btn btn-sm btn-primary w-25" onclick="uploadAssemblyDrawing('${a.projId}', ${a.loeIdx}, '${a._id}')" title="Upload">
                   <i class="fa fa-upload"></i>
                 </button>
@@ -3602,7 +3634,7 @@
 
       const tbody = document.getElementById("assembliesBody");
       if (realAssemblies.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4">No assemblies found.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">No assemblies found.</td></tr>`;
         return;
       }
 
@@ -3612,7 +3644,7 @@
       // Very basic grouped rendering for prototype
       filtered.forEach(a => {
         if (a.isSection) {
-          html += `<tr class="section-divider"><td colspan="8">${escapeHtml(a.assemblyName)}</td></tr>`;
+          html += `<tr class="section-divider"><td colspan="7">${escapeHtml(a.assemblyName)}</td></tr>`;
           sIdx++;
         } else {
           let sr = String(a.srNo);
@@ -3647,37 +3679,107 @@
 
       let pData = window.projectsData || (typeof projectsData !== 'undefined' ? projectsData : []);
       let proj = pData.find(p => p.id == projId);
-      if (proj && proj.loeData && proj.loeData[loeIdx]) {
-        proj.loeData[loeIdx].drawingFiles = proj.loeData[loeIdx].drawingFiles || [];
-        let files = Array.from(fileInput.files);
-        let readCount = 0;
+      if (!proj || !proj.loeData || !proj.loeData[loeIdx]) return;
 
-        files.forEach(file => {
-          let reader = new FileReader();
+      let files = Array.from(fileInput.files);
+      let readCount = 0;
+      let uploadStatus = { drawings: 0, boms: 0, errors: [] };
+
+      files.forEach(file => {
+        let ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+        let reader = new FileReader();
+
+        if (ext === '.xlsx' || ext === '.xls' || ext === '.csv') {
           reader.onload = async function (e) {
-            proj.loeData[loeIdx].drawingFiles.push({
-              _id: "new_" + Date.now() + Math.floor(Math.random() * 1000),
-              originalName: file.name,
-              fileData: e.target.result // Base64 data string
-            });
+            try {
+              const data = new Uint8Array(e.target.result);
+              const workbook = XLSX.read(data, { type: 'array' });
+              const firstSheet = workbook.SheetNames[0];
+              const worksheet = workbook.Sheets[firstSheet];
+              const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+              let subtasks = [];
+              for (let i = 2; i < sheetData.length; i++) {
+                const row = sheetData[i];
+                if (!row || row.length === 0) continue;
+
+                const comp = row[3] !== undefined ? String(row[3]).trim() : '';
+                const dwg = row[1] !== undefined ? String(row[1]).trim() : '';
+                const qty = row[4] !== undefined ? String(row[4]).trim() : '';
+                const mat = row[5] !== undefined ? String(row[5]).trim() : '';
+                const wt = row[7] !== undefined ? String(row[7]).trim() : '';
+
+                if (comp || dwg || qty || mat || wt) {
+                  subtasks.push({
+                    component: comp,
+                    drawingNo: dwg,
+                    qty: qty,
+                    material: mat,
+                    weight: wt
+                  });
+                }
+              }
+
+              proj.loeData[loeIdx].subtasks = subtasks;
+              if (proj.execution && proj.execution.assemblies) {
+                proj.execution.assemblies = proj.execution.assemblies.filter(x => x.loeIdx !== loeIdx);
+              }
+              uploadStatus.boms++;
+            } catch (err) {
+              uploadStatus.errors.push(`${file.name}: ${err.message}`);
+            }
 
             readCount++;
-            if (readCount === files.length) {
-              try {
-                let saveFn = window.saveProjects || (typeof saveProjects === 'function' ? saveProjects : null);
-                if (saveFn) await saveFn();
-                openProjectDrawings(projId); // Refresh table
-                loadProjectsData(); // Refresh grid silently
-                try { fileInput.value = ""; } catch (ex) { }
-                Swal.fire({ icon: 'success', title: 'Drawing Uploaded', timer: 1500, showConfirmButton: false });
-              } catch (err) {
-                console.error("Upload save error:", err);
-                Swal.fire('Error Saving Drawing', 'Could not save uploaded drawing file: ' + (err.message || err), 'error');
-              }
+            checkComplete();
+          };
+          reader.readAsArrayBuffer(file);
+
+        } else {
+          reader.onload = async function (e) {
+            try {
+              proj.loeData[loeIdx].drawingFiles = proj.loeData[loeIdx].drawingFiles || [];
+              proj.loeData[loeIdx].drawingFiles.push({
+                _id: "new_" + Date.now() + Math.floor(Math.random() * 1000),
+                originalName: file.name,
+                fileData: e.target.result
+              });
+              uploadStatus.drawings++;
+            } catch (err) {
+              uploadStatus.errors.push(`${file.name}: ${err.message}`);
             }
+
+            readCount++;
+            checkComplete();
           };
           reader.readAsDataURL(file);
-        });
+        }
+      });
+
+      async function checkComplete() {
+        if (readCount === files.length) {
+          try {
+            let saveFn = window.saveProjects || (typeof saveProjects === 'function' ? saveProjects : null);
+            if (saveFn) await saveFn();
+            openProjectDrawings(projId);
+            loadProjectsData();
+            try { fileInput.value = ""; } catch (ex) { }
+
+            let msg = [];
+            if (uploadStatus.drawings > 0) msg.push(`${uploadStatus.drawings} Drawing(s) uploaded`);
+            if (uploadStatus.boms > 0) msg.push(`${uploadStatus.boms} BOM(s) imported`);
+            if (uploadStatus.errors.length > 0) msg.push(`${uploadStatus.errors.length} Error(s)`);
+
+            Swal.fire({
+              icon: uploadStatus.errors.length > 0 ? 'warning' : 'success',
+              title: 'Upload Summary',
+              html: msg.join('<br>') + (uploadStatus.errors.length > 0 ? '<br><small class="text-danger">' + uploadStatus.errors.join('<br>') + '</small>' : ''),
+              confirmButtonText: 'OK'
+            });
+          } catch (err) {
+            console.error("Upload save error:", err);
+            Swal.fire('Error Saving Uploads', 'Could not save uploaded files: ' + (err.message || err), 'error');
+          }
+        }
       }
     };
 
@@ -3953,7 +4055,7 @@
     };
 
     window.handleGlobalBOMUpload = function (input) {
-      const files = input.files;
+      const files = Array.from(input.files);
       if (!files || files.length === 0) return;
 
       let pData = window.projectsData || (typeof projectsData !== 'undefined' ? projectsData : []);
@@ -3965,121 +4067,193 @@
         return;
       }
 
+      window._pendingBulkFiles = files;
+      window._pendingBulkProjId = currentProjId;
+
       function normalizeDwgNo(str) {
         return String(str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
       }
 
-      let matchCount = 0;
-      let failList = [];
+      let tbodyHtml = '';
+      files.forEach((file, fileIdx) => {
+        let filename = file.name;
+        let baseName = filename.substring(0, filename.lastIndexOf('.')).trim();
+        let normBase = normalizeDwgNo(baseName);
+        let ext = filename.substring(filename.lastIndexOf('.')).toLowerCase();
+        let isExcel = ext === '.xlsx' || ext === '.xls' || ext === '.csv';
 
-      function processFile(file) {
-        return new Promise((resolve) => {
-          let filename = file.name;
-          let baseName = filename.substring(0, filename.lastIndexOf('.')).trim();
-          let normBase = normalizeDwgNo(baseName);
-
-          if (!normBase) {
-            failList.push(`${filename} (invalid filename)`);
-            resolve();
-            return;
-          }
-
-          let matchedLoeIdx = proj.loeData.findIndex(loe => {
-            let normLoe = normalizeDwgNo(loe.drawingNo);
-            return normLoe && (normLoe === normBase || normLoe.includes(normBase) || normBase.includes(normLoe));
-          });
-
-          if (matchedLoeIdx === -1) {
-            failList.push(`${filename} (no matching Drawing Number in LOE)`);
-            resolve();
-            return;
-          }
-
-          const reader = new FileReader();
-          reader.onload = function (e) {
-            try {
-              const data = new Uint8Array(e.target.result);
-              const workbook = XLSX.read(data, { type: 'array' });
-              const firstSheetName = workbook.SheetNames[0];
-              const worksheet = workbook.Sheets[firstSheetName];
-              const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-              let subtasks = [];
-              for (let i = 2; i < sheetData.length; i++) {
-                const row = sheetData[i];
-                if (!row || row.length === 0) continue;
-
-                const comp = row[3] !== undefined ? String(row[3]).trim() : '';
-                const dwg = row[1] !== undefined ? String(row[1]).trim() : '';
-                const qty = row[4] !== undefined ? String(row[4]).trim() : '';
-                const mat = row[5] !== undefined ? String(row[5]).trim() : '';
-                const wt = row[7] !== undefined ? String(row[7]).trim() : '';
-
-                if (comp || dwg || qty || mat || wt) {
-                  subtasks.push({
-                    component: comp,
-                    drawingNo: dwg,
-                    qty: qty,
-                    material: mat,
-                    weight: wt
-                  });
-                }
-              }
-
-              proj.loeData[matchedLoeIdx].subtasks = subtasks;
-              if (proj.execution && proj.execution.assemblies) {
-                proj.execution.assemblies = proj.execution.assemblies.filter(x => x.loeIdx !== matchedLoeIdx);
-              }
-              matchCount++;
-            } catch (err) {
-              failList.push(`${filename} (Error parsing Excel: ${err.message})`);
-            }
-            resolve();
-          };
-          reader.onerror = function () {
-            failList.push(`${filename} (File read error)`);
-            resolve();
-          };
-          reader.readAsArrayBuffer(file);
+        let matchedLoeIdx = proj.loeData.findIndex(loe => {
+          let normDwg = normalizeDwgNo(loe.drawingNo);
+          let normName = normalizeDwgNo(loe.assemblyName);
+          return (normDwg && (normDwg === normBase || normDwg.includes(normBase) || normBase.includes(normDwg))) ||
+                 (normName && (normName === normBase || normName.includes(normBase) || normBase.includes(normName)));
         });
+
+        let fileTypeBadge = isExcel ? '<span class="badge bg-success">BOM Excel</span>' : '<span class="badge bg-primary">Drawing PDF</span>';
+        let rowOptionsHtml = `<option value="-1">-- Select Assembly (Ignore file) --</option>`;
+        proj.loeData.forEach((loe, idx) => {
+          let selected = idx === matchedLoeIdx ? 'selected' : '';
+          rowOptionsHtml += `<option value="${idx}" ${selected}>[${loe.srNo || (idx+1)}] ${escapeHtml(loe.assemblyName)} (${escapeHtml(loe.drawingNo || 'No Doc')})</option>`;
+        });
+
+        let statusBadge = matchedLoeIdx !== -1 
+          ? '<span class="badge bg-success"><i class="fa fa-check me-1"></i>Auto-Matched</span>' 
+          : '<span class="badge bg-warning text-dark"><i class="fa fa-exclamation-triangle me-1"></i>Unmapped</span>';
+
+        tbodyHtml += `
+          <tr data-file-idx="${fileIdx}">
+            <td class="fw-semibold text-dark text-wrap" style="word-break: break-all; max-width: 250px;">${escapeHtml(filename)}</td>
+            <td>${fileTypeBadge}</td>
+            <td>
+              <select class="form-select form-select-sm bulk-map-select" onchange="updateBulkMapBadge(this)">
+                ${rowOptionsHtml}
+              </select>
+            </td>
+            <td class="text-center map-status-cell">${statusBadge}</td>
+          </tr>
+        `;
+      });
+
+      $('#bulkUploadMappingBody').html(tbodyHtml);
+      $('#bulkUploadMappingModal').modal('show');
+      input.value = '';
+    };
+
+    window.updateBulkMapBadge = function (selectEl) {
+      let val = $(selectEl).val();
+      let statusCell = $(selectEl).closest('tr').find('.map-status-cell');
+      if (val === "-1") {
+        statusCell.html('<span class="badge bg-warning text-dark"><i class="fa fa-exclamation-triangle me-1"></i>Unmapped</span>');
+      } else {
+        statusCell.html('<span class="badge bg-info text-dark"><i class="fa fa-link me-1"></i>Mapped</span>');
       }
+    };
 
-      let chain = Promise.resolve();
-      for (let i = 0; i < files.length; i++) {
-        chain = chain.then(() => processFile(files[i]));
-      }
+    window.submitBulkUploadMapping = async function () {
+      $('#bulkUploadMappingModal').modal('hide');
 
-      chain.then(async () => {
-        if (matchCount > 0) {
-          let saveFn = window.saveProjects || (typeof saveProjects === 'function' ? saveProjects : null);
-          if (saveFn) await saveFn();
+      let files = window._pendingBulkFiles || [];
+      let projId = window._pendingBulkProjId;
+      let pData = window.projectsData || (typeof projectsData !== 'undefined' ? projectsData : []);
+      let proj = pData.find(p => p.id == projId);
+      if (!proj) return;
 
-          let renderTableFn = window.renderTable || (typeof renderTable === 'function' ? renderTable : null);
-          if (renderTableFn) renderTableFn();
-          let loadProjectsDataFn = window.loadProjectsData || (typeof loadProjectsData === 'function' ? loadProjectsData : null);
-          if (loadProjectsDataFn) loadProjectsDataFn();
-          if ($('#drawingsAssembliesDetail').is(':visible')) {
-            let renderAssembliesFn = window.renderAssemblies || (typeof renderAssemblies === 'function' ? renderAssemblies : null);
-            if (renderAssembliesFn) renderAssembliesFn();
+      Swal.fire({
+        title: 'Processing Uploads...',
+        html: 'Please wait while files are processed and saved.',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+      });
+
+      let uploadStatus = { drawings: 0, boms: 0, errors: [] };
+      let promises = [];
+
+      $('#bulkUploadMappingBody tr').each(function () {
+        let fileIdx = parseInt($(this).attr('data-file-idx'));
+        let loeIdx = parseInt($(this).find('.bulk-map-select').val());
+        if (loeIdx === -1) return;
+
+        let file = files[fileIdx];
+        if (!file) return;
+
+        let ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+        let reader = new FileReader();
+
+        let p = new Promise((resolve) => {
+          if (ext === '.xlsx' || ext === '.xls' || ext === '.csv') {
+            reader.onload = function (e) {
+              try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheet];
+                const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                let subtasks = [];
+                for (let i = 2; i < sheetData.length; i++) {
+                  const row = sheetData[i];
+                  if (!row || row.length === 0) continue;
+
+                  const comp = row[3] !== undefined ? String(row[3]).trim() : '';
+                  const dwg = row[1] !== undefined ? String(row[1]).trim() : '';
+                  const qty = row[4] !== undefined ? String(row[4]).trim() : '';
+                  const mat = row[5] !== undefined ? String(row[5]).trim() : '';
+                  const wt = row[7] !== undefined ? String(row[7]).trim() : '';
+
+                  if (comp || dwg || qty || mat || wt) {
+                    subtasks.push({
+                      component: comp,
+                      drawingNo: dwg,
+                      qty: qty,
+                      material: mat,
+                      weight: wt
+                    });
+                  }
+                }
+
+                proj.loeData[loeIdx].subtasks = subtasks;
+                if (subtasks.length > 0 && !proj.loeData[loeIdx].drawingNo) {
+                  let firstDwg = subtasks.find(s => s.drawingNo)?.drawingNo;
+                  if (firstDwg) {
+                    proj.loeData[loeIdx].drawingNo = firstDwg;
+                  }
+                }
+                
+                if (proj.execution && proj.execution.assemblies) {
+                  proj.execution.assemblies = proj.execution.assemblies.filter(x => x.loeIdx !== loeIdx);
+                }
+                uploadStatus.boms++;
+              } catch (err) {
+                uploadStatus.errors.push(`${file.name}: ${err.message}`);
+              }
+              resolve();
+            };
+            reader.readAsArrayBuffer(file);
+          } else {
+            reader.onload = function (e) {
+              try {
+                proj.loeData[loeIdx].drawingFiles = proj.loeData[loeIdx].drawingFiles || [];
+                proj.loeData[loeIdx].drawingFiles.push({
+                  _id: "new_" + Date.now() + Math.floor(Math.random() * 1000),
+                  originalName: file.name,
+                  fileData: e.target.result
+                });
+                uploadStatus.drawings++;
+              } catch (err) {
+                uploadStatus.errors.push(`${file.name}: ${err.message}`);
+              }
+              resolve();
+            };
+            reader.readAsDataURL(file);
           }
-        }
+        });
 
-        let message = `Successfully imported BOM for ${matchCount} assemblies.`;
-        let icon = 'success';
-        if (failList.length > 0) {
-          message += `\n\nFailed/Unmatched files:\n` + failList.join('\n');
-          icon = matchCount > 0 ? 'warning' : 'error';
-        }
+        promises.push(p);
+      });
+
+      await Promise.all(promises);
+
+      try {
+        let saveFn = window.saveProjects || (typeof saveProjects === 'function' ? saveProjects : null);
+        if (saveFn) await saveFn();
+        openProjectDrawings(projId);
+        loadProjectsData();
+
+        let msg = [];
+        if (uploadStatus.drawings > 0) msg.push(`Successfully uploaded ${uploadStatus.drawings} Drawing(s).`);
+        if (uploadStatus.boms > 0) msg.push(`Successfully imported ${uploadStatus.boms} BOM(s).`);
+        if (uploadStatus.errors.length > 0) msg.push(`Failed files:<br>${uploadStatus.errors.join('<br>')}`);
 
         Swal.fire({
-          icon: icon,
-          title: 'Global BOM Import Complete',
-          html: `<pre style="text-align: left; font-size: 0.85rem; max-height: 300px; overflow-y: auto;">${message}</pre>`,
+          icon: uploadStatus.errors.length > 0 ? 'warning' : 'success',
+          title: 'Bulk Upload Complete',
+          html: msg.join('<br>'),
           confirmButtonText: 'OK'
         });
-
-        input.value = '';
-      });
+      } catch (err) {
+        console.error("Bulk upload save error:", err);
+        Swal.fire('Error Saving Uploads', 'Could not save bulk uploads: ' + (err.message || err), 'error');
+      }
     };
 
     $('#btnSaveSubtasks').click(async function () {
