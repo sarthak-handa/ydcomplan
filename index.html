@@ -1318,9 +1318,20 @@
                 <label class="form-label">Machine Type <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" id="inpMachine" required placeholder="6 HI CRM" />
               </div>
+              <div class="col-md-4">
+                <label class="form-label">Speed <span class="text-danger" id="speedReqMark">*</span></label>
+                <input type="text" class="form-control" id="inpSpeed" required placeholder="e.g. 1200 MPM" />
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Thickness <span class="text-danger" id="thicknessReqMark">*</span></label>
+                <input type="text" class="form-control" id="inpThickness" required placeholder="e.g. 0.2 - 2.0 mm" />
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Width <span class="text-danger" id="widthReqMark">*</span></label>
+                <input type="text" class="form-control" id="inpWidth" required placeholder="e.g. 1250 mm" />
+              </div>
               <div class="col-md-6">
-                <label class="form-label">Sales Order No. <span
-                    class="text-muted small fst-italic">(optional)</span></label>
+                <label class="form-label">Sales Order No.</label>
                 <input type="text" class="form-control" id="inpSO" placeholder="e.g. SO-2024-001" />
               </div>
 
@@ -1336,7 +1347,6 @@
               <div class="col-md-6" id="inpPOWrap">
                 <label class="form-label fw-bold">
                   <i class="fa fa-file-pdf text-success me-1"></i>Purchase Order
-                  <span class="text-muted small fst-italic">(optional)</span>
                 </label>
                 <input type="file" class="form-control" id="inpPO" accept=".pdf,image/*" />
               </div>
@@ -2913,6 +2923,34 @@
         new bootstrap.Modal(document.getElementById('detailsModal')).show();
       });
 
+      // Dynamic Machine Type validation logic (Spares & ARP)
+      function updateMachineTypeValidation() {
+        var val = ($('#inpMachine').val() || '').trim();
+
+        // 1. Spares condition: spare, spares, SPARE, SPARES
+        var isSpare = /\bspares?\b/i.test(val);
+        if (isSpare) {
+          $('#techScopeRequiredMark').addClass('d-none');
+          $('#inpTechScope').prop('required', false);
+        } else {
+          $('#techScopeRequiredMark').removeClass('d-none');
+          $('#inpTechScope').prop('required', true);
+        }
+
+        // 2. ARP / Acid Regeneration Plant condition
+        var isArp = /\b(arp|acid regeneration plant)\b/i.test(val);
+        if (isArp) {
+          $('#speedReqMark, #thicknessReqMark, #widthReqMark').addClass('d-none');
+          $('#inpSpeed, #inpThickness, #inpWidth').prop('required', false);
+        } else {
+          $('#speedReqMark, #thicknessReqMark, #widthReqMark').removeClass('d-none');
+          $('#inpSpeed, #inpThickness, #inpWidth').prop('required', true);
+        }
+      }
+
+      $('#inpMachine').on('input keyup change', updateMachineTypeValidation);
+      $('#createModal').on('show.bs.modal shown.bs.modal', updateMachineTypeValidation);
+
       // Initialize Select2 in Create Modal
       $('#createModal').on('shown.bs.modal', function () {
         $('#inpClient').select2({
@@ -2940,6 +2978,9 @@
         var client = $('#inpClient').val() || 'New Client';
         var site = $('#inpSite').val();
         var machine = $('#inpMachine').val();
+        var speed = $('#inpSpeed').val();
+        var thickness = $('#inpThickness').val();
+        var width = $('#inpWidth').val();
         var isElectrical = $('#inpElectrical').is(':checked');
 
         var soNo = $('#inpSO').val() || '-';
@@ -2957,6 +2998,9 @@
           client: client,
           site: site,
           machine: machine,
+          speed: speed || null,
+          thickness: thickness || null,
+          width: width || null,
           soNo: soNo,
           initiatedOn: new Date().toLocaleDateString(),
           hasTechScope: !!techScopeFile,
@@ -2975,6 +3019,7 @@
 
         $('#createModal').modal('hide');
         $('#createForm')[0].reset();
+        updateMachineTypeValidation();
         $('#inpClient').val(null).trigger('change');
 
         Swal.fire({
