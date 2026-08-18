@@ -2743,6 +2743,201 @@
       }
       window.parseWeekValue = parseWeekValue;
 
+      // LOE Multi-Sheet Excel Parser with BO Specification Support
+      function formatExcelDate(val) {
+        if (val === null || val === undefined || val === '') return '';
+        var str = String(val).trim();
+        if (!str) return '';
+        var num = Number(str);
+        if (!isNaN(num) && num > 30000 && num < 70000) {
+          var dateObj = new Date(Math.round((num - 25569) * 86400 * 1000));
+          var dd = String(dateObj.getDate()).padStart(2, '0');
+          var mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+          var yyyy = dateObj.getFullYear();
+          return `${dd}/${mm}/${yyyy}`;
+        }
+        return str;
+      }
+
+      function parseLOEWorkbook(workbook) {
+        var loeData = [];
+        var autoId = 1;
+
+        if (!workbook || !workbook.SheetNames || workbook.SheetNames.length === 0) {
+          return loeData;
+        }
+
+        workbook.SheetNames.forEach(function (sheetName) {
+          var worksheet = workbook.Sheets[sheetName];
+          if (!worksheet) return;
+          var rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+          if (!rows || rows.length === 0) return;
+
+          // Locate Main Table Header Row (ignoring top project metadata rows)
+          var headerRowIdx = -1;
+          for (var r = 0; r < Math.min(30, rows.length); r++) {
+            var row = rows[r] || [];
+            var c0 = String(row[0] || '').toUpperCase().trim();
+            var c1 = String(row[1] || '').toUpperCase().trim();
+            var rowStr = row.map(c => String(c).toUpperCase()).join(' ');
+
+            if (c0 === 'SR.' || c0 === 'SR' || c0 === 'SR. NO.' || c0 === 'SR NO' ||
+                c1 === 'SR.' || c1 === 'SR' || c1 === 'SR. NO.' || c1 === 'SR NO' ||
+                rowStr.includes('GA/ASSEMBLY') || (rowStr.includes('SR') && rowStr.includes('DRAWING'))) {
+              headerRowIdx = r;
+              break;
+            }
+          }
+
+          var startRow = headerRowIdx !== -1 ? headerRowIdx + 1 : 0;
+          if (headerRowIdx !== -1 && headerRowIdx + 1 < rows.length) {
+            var subStr = (rows[headerRowIdx + 1] || []).map(c => String(c).toUpperCase()).join(' ');
+            if (subStr.includes('REV') || subStr.includes('TOTAL') || subStr.includes('UNIT') || subStr.includes('DRAWING NO')) {
+              startRow = headerRowIdx + 2;
+            }
+          }
+
+          var mainHeader = headerRowIdx !== -1 ? rows[headerRowIdx] : [];
+          var subHeader = (headerRowIdx !== -1 && rows[headerRowIdx + 1]) ? rows[headerRowIdx + 1] : [];
+
+          function findCol(keywords, defaultIdx) {
+            for (var c = 0; c < Math.max(mainHeader.length, subHeader.length); c++) {
+              var cellMain = String(mainHeader[c] || '').toUpperCase();
+              var cellSub = String(subHeader[c] || '').toUpperCase();
+              var combined = cellMain + ' ' + cellSub;
+              if (keywords.some(k => combined.includes(k))) {
+                return c;
+              }
+            }
+            return defaultIdx;
+          }
+
+          var srNoCol = findCol(['SR.', 'SR NO', 'SR.'], 0);
+          var sectionCol = findCol(['SECTION', 'EQUIPMENT'], 1);
+          var assemblyCol = findCol(['GA/ASSEMBLY', 'ASSEMBLY', 'EQUIPMENT'], 2);
+          var drawingNoCol = findCol(['DRAWING/DOC', 'DOC/DRG NUMBER', 'DRAWING NO', 'DOCUMENT NO'], 3);
+          var qtyCol = findCol(['QTY', 'QTY.'], 6);
+          var docRevCol = findCol(['DOC/DRG REV', 'REV NO.'], 4);
+          var bomRevCol = findCol(['BOM REV'], 5);
+          var remarkCol = findCol(['REMARK', 'REMARKS'], 7);
+          var refDwgCol = findCol(['REFERENCE DRAWING', 'REFERENCE'], 8);
+          var refRevCol = findCol(['REF REV', 'REV NO'], 9);
+          var scopeCol = findCol(['SCOPE'], 10);
+          var unitWtCol = findCol(['UNIT WT'], 11);
+          var totalWtCol = findCol(['TOTAL WT', 'WEIGHT (KG)', 'WEIGHT'], 12);
+          var planDateCol = findCol(['PLAN DATE'], 13);
+          var issuedDateCol = findCol(['ISSUED DATE', 'ACTUAL DATE', 'ISSUE DATE'], 14);
+          var designEngCol = findCol(['DESIGN ENGINEER'], 15);
+          var designStatusCol = findCol(['DESIGN STATUS', 'STATUS'], 16);
+
+          var mode = 'MAIN';
+          var boHeaderIdx = -1;
+          var boSrCol = 0, boSecCol = 1, boTitleCol = 2, boDocCol = 3, boQtyCol = 4, boDocRevCol = 5, boBomRevCol = 6, boPlanDateCol = 10, boIssueDateCol = 11, boStatusCol = 12, boRemarkCol = 13;
+
+          for (var i = startRow; i < rows.length; i++) {
+            var row = rows[i];
+            if (!row || row.length === 0) continue;
+
+            var rowStr = row.map(c => String(c).toUpperCase()).join(' ');
+
+            if (rowStr.includes('BO SPECIFICATION') || rowStr.includes('BO SPEC')) {
+              mode = 'BO';
+              boHeaderIdx = i;
+              continue;
+            }
+
+            if (mode === 'BO' && i <= boHeaderIdx + 1) {
+              var boHdr = row.map(c => String(c).toUpperCase());
+              boHdr.forEach(function (cVal, cIdx) {
+                if (cVal.includes('SR')) boSrCol = cIdx;
+                else if (cVal.includes('SECTION') || cVal.includes('EQUIPMENT')) boSecCol = cIdx;
+                else if (cVal.includes('TITLE') || cVal.includes('DESCRIPTION') || cVal.includes('NAME')) boTitleCol = cIdx;
+                else if (cVal.includes('DOCUMENT') || cVal.includes('DRAWING') || cVal.includes('DOC NO')) boDocCol = cIdx;
+                else if (cVal.includes('QTY')) boQtyCol = cIdx;
+                else if (cVal.includes('REV') && !cVal.includes('BOM')) boDocRevCol = cIdx;
+                else if (cVal.includes('BOM REV')) boBomRevCol = cIdx;
+                else if (cVal.includes('PLAN')) boPlanDateCol = cIdx;
+                else if (cVal.includes('ISSUE') || cVal.includes('ACTUAL')) boIssueDateCol = cIdx;
+                else if (cVal.includes('STATUS')) boStatusCol = cIdx;
+                else if (cVal.includes('REMARK')) boRemarkCol = cIdx;
+              });
+              continue;
+            }
+
+            if (mode === 'MAIN') {
+              var srVal = String(row[srNoCol] || '').trim();
+              var secVal = String(row[sectionCol] || '').trim();
+              var asmVal = String(row[assemblyCol] || '').trim();
+              var dwgVal = String(row[drawingNoCol] || '').trim();
+              var qtyVal = String(row[qtyCol] || '').trim();
+
+              if (srVal.toUpperCase().startsWith('SR') || asmVal.toUpperCase().includes('GA/ASSEMBLY')) continue;
+
+              var isValidRow = (srVal !== '' && (/^\d+(\.\d+)*$/.test(srVal) || srVal.length < 10)) || asmVal !== '' || dwgVal !== '';
+              if (isValidRow) {
+                loeData.push({
+                  autoId: autoId++,
+                  sheetName: sheetName,
+                  sectionType: "Assembly",
+                  srNo: srVal,
+                  section: secVal,
+                  assemblyName: asmVal || secVal,
+                  drawingNo: dwgVal,
+                  docRevNo: String(row[docRevCol] || '').trim(),
+                  bomRevNo: String(row[bomRevCol] || '').trim(),
+                  qty: qtyVal,
+                  remark: String(row[remarkCol] || '').trim(),
+                  refDwgNo: String(row[refDwgCol] || '').trim(),
+                  refRevNo: String(row[refRevCol] || '').trim(),
+                  scope: String(row[scopeCol] || '').trim(),
+                  unitWeight: String(row[unitWtCol] || '').trim(),
+                  totalWeight: String(row[totalWtCol] || '').trim(),
+                  planDate: formatExcelDate(row[planDateCol]),
+                  issuedDate: formatExcelDate(row[issuedDateCol]),
+                  designEngineer: String(row[designEngCol] || '').trim(),
+                  designStatus: String(row[designStatusCol] || '').trim()
+                });
+              }
+            } else if (mode === 'BO') {
+              var boSrVal = String(row[boSrCol] || '').trim();
+              var boSecVal = String(row[boSecCol] || '').trim();
+              var boTitleVal = String(row[boTitleCol] || '').trim();
+              var boDocVal = String(row[boDocCol] || '').trim();
+
+              if (boSrVal.toUpperCase().startsWith('SR') || boTitleVal.toUpperCase().includes('TITLE') || boTitleVal.toUpperCase().includes('GA/ASSEMBLY')) continue;
+
+              if (boSrVal || boTitleVal || boDocVal) {
+                loeData.push({
+                  autoId: autoId++,
+                  sheetName: sheetName,
+                  sectionType: "BO Specification",
+                  srNo: boSrVal ? ("BO-" + boSrVal) : "BO",
+                  section: boSecVal || "BO Specification",
+                  assemblyName: boTitleVal,
+                  drawingNo: boDocVal,
+                  docRevNo: String(row[boDocRevCol] || '').trim(),
+                  bomRevNo: String(row[boBomRevCol] || '').trim(),
+                  qty: String(row[boQtyCol] || '').trim(),
+                  remark: String(row[boRemarkCol] || '').trim(),
+                  refDwgNo: "",
+                  refRevNo: "",
+                  scope: "Bought-Out",
+                  unitWeight: "",
+                  totalWeight: "",
+                  planDate: formatExcelDate(row[boPlanDateCol]),
+                  issuedDate: formatExcelDate(row[boIssueDateCol]),
+                  designEngineer: "",
+                  designStatus: String(row[boStatusCol] || '').trim()
+                });
+              }
+            }
+          }
+        });
+
+        return loeData;
+      }
+      window.parseLOEWorkbook = parseLOEWorkbook;
+
       window.openExcelViewer = function (projId) {
         let proj = getProject(projId);
         if (!proj || !proj.loeData || proj.loeData.length === 0) {
@@ -2754,13 +2949,30 @@
         var tbody = $('#excelViewerTable tbody');
         tbody.empty();
 
+        // Populate sheet filter options
+        var sheets = [...new Set(proj.loeData.map(d => d.sheetName).filter(Boolean))];
+        var sheetFilterHtml = '<option value="">All Sheets (' + proj.loeData.length + ' Items)</option>';
+        sheets.forEach(function (s) {
+          var sCount = proj.loeData.filter(d => d.sheetName === s).length;
+          sheetFilterHtml += `<option value="${escapeHtml(s)}">${escapeHtml(s)} (${sCount})</option>`;
+        });
+        $('#excelViewerSheetFilter').html(sheetFilterHtml);
+
         proj.loeData.forEach(function (item) {
+          var typeBadge = item.sectionType === 'BO Specification' ? '<span class="badge bg-warning text-dark me-1">BO Spec</span>' : '<span class="badge bg-secondary opacity-75 me-1">ASM</span>';
+          var sheetBadge = item.sheetName ? `<span class="badge bg-light text-dark border me-1">${escapeHtml(item.sheetName)}</span>` : '';
+          var statusBadge = item.designStatus ? `<span class="badge ${item.designStatus.toLowerCase() === 'issued' ? 'bg-success' : 'bg-secondary'}">${escapeHtml(item.designStatus)}</span>` : '-';
+
           tbody.append(`
-            <tr>
+            <tr data-sheet="${escapeHtml(item.sheetName || '')}" data-type="${escapeHtml(item.sectionType || '')}">
               <td class="text-center fw-bold text-muted">${item.autoId}</td>
-              <td class="fw-bold text-center">${item.srNo}</td>
-              <td>${item.assemblyName || ''}</td>
-              <td><span class="text-muted">${item.drawingNo || '-'}</span></td>
+              <td class="small">${sheetBadge}</td>
+              <td class="fw-bold text-center">${escapeHtml(item.srNo || '-')}</td>
+              <td class="small text-muted">${escapeHtml(item.section || '-')}</td>
+              <td>${typeBadge} <strong>${escapeHtml(item.assemblyName || '')}</strong></td>
+              <td><span class="text-primary font-monospace small">${escapeHtml(item.drawingNo || '-')}</span></td>
+              <td class="text-center">${escapeHtml(item.qty || '-')}</td>
+              <td class="small">${statusBadge}</td>
               <td>${getWeekColorBadge(item.dispatchWeek)}</td>
               <td><span class="text-success fw-bold">${item.billingValue ? '₹' + item.billingValue : '-'}</span></td>
             </tr>
@@ -3344,35 +3556,28 @@
           try {
             var data = new Uint8Array(evt.target.result);
             var workbook = XLSX.read(data, { type: 'array' });
-            var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-            var rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
+            var parsedItems = parseLOEWorkbook(workbook);
 
             var tbody = $('#loePreviewTable tbody');
             tbody.empty();
 
-            var count = 0;
-            for (var i = 15; i < rows.length; i++) {
-              var row = rows[i];
-              if (!row || row.length === 0) continue;
+            parsedItems.slice(0, 50).forEach(function (item) {
+              var sheetTag = item.sheetName ? `<span class="badge bg-light text-dark border me-1">${escapeHtml(item.sheetName)}</span>` : '';
+              var typeTag = item.sectionType === 'BO Specification' ? '<span class="badge bg-warning text-dark me-1">BO</span>' : '';
+              tbody.append(`
+                <tr>
+                  <td class="fw-bold">${sheetTag}${escapeHtml(item.srNo || '')}</td>
+                  <td>${typeTag}${escapeHtml(item.assemblyName || "")}</td>
+                  <td><span class="text-muted">${escapeHtml(item.drawingNo || "-")}</span></td>
+                </tr>
+              `);
+            });
 
-              var colA = String(row[0]).trim();
-              if (colA !== "" && /^\d+(\.\d+)?$/.test(colA)) {
-                count++;
-                tbody.append(`
-                  <tr>
-                    <td class="fw-bold">${colA}</td>
-                    <td>${row[2] ? String(row[2]).trim() : ""}</td>
-                    <td><span class="text-muted">${row[3] ? String(row[3]).trim() : "-"}</span></td>
-                  </tr>
-                `);
-              }
-            }
-
-            if (count > 0) {
+            if (parsedItems.length > 0) {
               $('#loePreviewContainer').show();
             } else {
               $('#loePreviewContainer').hide();
-              Swal.fire({ icon: 'warning', title: 'No Data Found', text: 'Could not find any valid numbered rows starting from row 16. Please check your Excel format.' });
+              Swal.fire({ icon: 'warning', title: 'No Data Found', text: 'Could not find any valid LOE rows across the sheets in the Excel file.' });
             }
           } catch (err) {
             console.error(err);
@@ -3394,45 +3599,36 @@
 
         var reader = new FileReader();
         reader.onload = async function (e) {
-          var data = new Uint8Array(e.target.result);
-          var workbook = XLSX.read(data, { type: 'array' });
-          var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-          var rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
+          try {
+            var data = new Uint8Array(e.target.result);
+            var workbook = XLSX.read(data, { type: 'array' });
+            var loeData = parseLOEWorkbook(workbook);
 
-          var loeData = [];
-          var autoId = 1;
-          for (var i = 15; i < rows.length; i++) {
-            var row = rows[i];
-            if (!row || row.length === 0) continue;
+            if (proj) {
+              proj.hasLoe = true;
+              proj.loeUrl = await fileToDataUrl(loeFile);
+              proj.loeData = loeData;
 
-            var colA = row[0];
-            var colC = row[2];
-            var colL = row[3]; // DRAWING/DOC. NO. (Column D)
-
-            var colAStr = String(colA).trim();
-            if (colAStr !== "" && /^\d+(\.\d+)?$/.test(colAStr)) {
-              loeData.push({
-                autoId: autoId++,
-                srNo: colAStr,
-                assemblyName: colC ? String(colC).trim() : "",
-                drawingNo: colL ? String(colL).trim() : ""
-              });
+              proj.timeline = proj.timeline || {}; proj.timeline[proj.stage] = new Date().toLocaleDateString();
+              proj.stage = 7; // PENDING_PLANNING_COLUMNS
+              proj.owner = "Planning & Forecasting";
+              addAutoRemark(proj, "Design Team", `LOE document uploaded with ${loeData.length} items parsed across all sheets.`, "LOE Document");
+              saveProjects();
+              renderTable();
             }
+            $('#loeModal').modal('hide');
+            $('#inpLoeFile').val('');
+            $('#loePreviewContainer').hide();
+            Swal.fire({
+              icon: 'success',
+              title: 'LOE Document Imported',
+              text: `Successfully imported ${loeData.length} items across all workbook sheets.`,
+              timer: 2500,
+              showConfirmButton: false
+            });
+          } catch (err) {
+            Swal.fire('Error', 'Failed to parse LOE document: ' + (err.message || err), 'error');
           }
-
-          if (proj) {
-            proj.hasLoe = true;
-            proj.loeUrl = await fileToDataUrl(loeFile);
-            proj.loeData = loeData;
-
-            proj.timeline = proj.timeline || {}; proj.timeline[proj.stage] = new Date().toLocaleDateString();
-            proj.stage = 7; // PENDING_PLANNING_COLUMNS
-            proj.owner = "Planning & Forecasting";
-            saveProjects();
-            renderTable();
-          }
-          $('#loeModal').modal('hide');
-          $('#inpLoeFile').val('');
         };
         reader.readAsArrayBuffer(loeFile);
       });
