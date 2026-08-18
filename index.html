@@ -1318,23 +1318,22 @@
                 <label class="form-label">Machine Type <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" id="inpMachine" required placeholder="6 HI CRM" />
               </div>
-              <div class="col-md-4">
-                <label class="form-label">Speed <span class="text-danger" id="speedReqMark">*</span></label>
-                <input type="text" class="form-control" id="inpSpeed" required placeholder="e.g. 1200 MPM" />
-              </div>
-              <div class="col-md-4">
-                <label class="form-label">Thickness <span class="text-danger" id="thicknessReqMark">*</span></label>
-                <input type="text" class="form-control" id="inpThickness" required placeholder="e.g. 0.2 - 2.0 mm" />
-              </div>
-              <div class="col-md-4">
-                <label class="form-label">Width <span class="text-danger" id="widthReqMark">*</span></label>
-                <input type="text" class="form-control" id="inpWidth" required placeholder="e.g. 1250 mm" />
-              </div>
               <div class="col-md-6">
                 <label class="form-label">Sales Order No.</label>
                 <input type="text" class="form-control" id="inpSO" placeholder="e.g. SO-2024-001" />
               </div>
-
+              <div class="col-md-6">
+                <label class="form-label">Speed (MPM) <span class="text-danger" id="speedReqMark">*</span></label>
+                <input type="text" class="form-control" id="inpSpeed" required placeholder="1200" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Thickness (mm) <span class="text-danger" id="thicknessReqMark">*</span></label>
+                <input type="text" class="form-control" id="inpThickness" required placeholder="3" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Width (mm) <span class="text-danger" id="widthReqMark">*</span></label>
+                <input type="text" class="form-control" id="inpWidth" required placeholder="1500" />
+              </div>
               <div class="col-md-6">
                 <label class="form-label fw-bold" id="lblTechScope">
                   <i class="fa fa-file-pdf text-danger me-1"></i>Technical Scope (PDF)
@@ -1760,6 +1759,17 @@
               <div class="col-12 mt-2 pt-2 border-top" id="detFilesContainer">
                 <strong>Attached Documents:</strong>
                 <div class="mt-2 d-flex flex-wrap gap-2" id="detFilesList"></div>
+              </div>
+              <div class="col-12 mt-3 pt-3 border-top" id="detRemarksContainer">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <strong class="text-dark"><i class="fa fa-comments text-primary me-1"></i> Remarks</strong>
+                  <button type="button" class="btn btn-sm btn-outline-secondary py-0" id="btnToggleRemarks" style="font-size: 12px;">Hide Remarks (0)</button>
+                </div>
+                <div class="input-group input-group-sm mb-3">
+                  <input type="text" class="form-control" id="inpNewRemark" placeholder="Add a remark for this project..." />
+                  <button class="btn btn-primary" type="button" id="btnAddRemark"><i class="fa fa-plus me-1"></i>Add</button>
+                </div>
+                <div id="detRemarksList"></div>
               </div>
             </div>
           </div>
@@ -2842,6 +2852,7 @@
         let id = $(this).data('id') || $(this).find('button[data-id]').data('id') || $(this).find('button').data('id');
         let proj = getProject(id);
         if (!proj) return;
+        currentProjectId = proj.id;
 
         $('#detCode').text(proj.projNo || "TBD");
         $('#detStatus').text(proj.status);
@@ -2920,7 +2931,140 @@
           }
         });
 
+        renderProjectRemarks(proj);
         new bootstrap.Modal(document.getElementById('detailsModal')).show();
+      });
+
+      // Project Remarks state management & helpers
+      var showAllRemarksMap = {};
+
+      function getStageName(stage) {
+        if (stage === 0 || stage === 1) return "Project Initiation";
+        if (stage === 1.5) return "Electrical Design";
+        if (stage === 2) return "Director Decision";
+        if (stage === 3) return "Advance Collection";
+        if (stage === 4) return "PM Allocation";
+        if (stage === 5) return "Kickoff Meeting";
+        if (stage === 6) return "LOE Document";
+        if (stage === 7) return "Planning Schedule";
+        if (stage === 8) return "Drawing Release Dates";
+        if (stage === 8.5) return "VP Approval";
+        if (stage === 9) return "Director Approval";
+        if (stage === 10) return "Drawings Complete";
+        return "General";
+      }
+
+      function getCurrentRoleName(stage) {
+        if (stage === 0 || stage === 1) return "Sales / Design Team";
+        if (stage === 1.5) return "Electrical Team";
+        if (stage === 2) return "Director";
+        if (stage === 3) return "Finance Team";
+        if (stage === 4) return "COO / VP";
+        if (stage === 5) return "Project Manager";
+        if (stage === 6) return "Design Team";
+        if (stage === 7) return "Planning Team";
+        if (stage === 8) return "Design Team";
+        if (stage === 8.5) return "VP";
+        if (stage === 9) return "Director";
+        return "Project Team";
+      }
+
+      function addAutoRemark(proj, author, text, stage) {
+        if (!proj) return;
+        proj.remarks = proj.remarks || [];
+        var now = new Date();
+        var formattedDate = now.toLocaleDateString('en-GB') + ' ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        proj.remarks.push({
+          id: Date.now() + Math.floor(Math.random() * 1000),
+          author: author,
+          text: text,
+          timestamp: formattedDate,
+          stage: stage
+        });
+      }
+
+      function renderProjectRemarks(proj) {
+        if (!proj) return;
+        var remarks = proj.remarks || [];
+        var count = remarks.length;
+        var showAll = !!showAllRemarksMap[proj.id];
+
+        var btnText = showAll ? `Hide Remarks (${count})` : (count > 2 ? `Show All Remarks (${count})` : `Hide Remarks (${count})`);
+        $('#btnToggleRemarks').text(btnText);
+
+        var $list = $('#detRemarksList');
+        $list.empty();
+
+        if (count === 0) {
+          $list.html('<div class="text-muted fst-italic small py-1" style="font-size:12px;">No remarks yet.</div>');
+          return;
+        }
+
+        var displayRemarks = showAll ? remarks.slice().reverse() : remarks.slice(-2).reverse();
+
+        displayRemarks.forEach(function (r) {
+          var author = r.author || "User";
+          var timestamp = r.timestamp || r.date || new Date().toLocaleString();
+          var stage = r.stage || "General";
+          var text = r.text || r.remark || "";
+
+          $list.append(`
+            <div class="p-2 mb-2 bg-white rounded border shadow-sm" style="font-size: 12.5px;">
+              <div class="d-flex justify-content-between align-items-center mb-1 text-muted" style="font-size: 11px;">
+                <span>
+                  <i class="fa fa-user-circle me-1 text-primary"></i><strong>${author}</strong>
+                  <span class="badge bg-light text-dark border ms-2" style="font-weight: 500;"><i class="fa fa-tag me-1 text-secondary"></i>${stage}</span>
+                </span>
+                <span><i class="fa fa-clock me-1 text-secondary opacity-75"></i>${timestamp}</span>
+              </div>
+              <div class="text-dark fw-semibold mt-1" style="white-space: pre-wrap; word-break: break-word;">${text}</div>
+            </div>
+          `);
+        });
+      }
+
+      $('#btnToggleRemarks').click(function () {
+        if (!currentProjectId) return;
+        var proj = getProject(currentProjectId);
+        if (proj) {
+          showAllRemarksMap[proj.id] = !showAllRemarksMap[proj.id];
+          renderProjectRemarks(proj);
+        }
+      });
+
+      function addNewRemark() {
+        if (!currentProjectId) return;
+        var text = $('#inpNewRemark').val().trim();
+        if (!text) return;
+
+        var proj = getProject(currentProjectId);
+        if (proj) {
+          proj.remarks = proj.remarks || [];
+          var currentStageName = getStageName(proj.stage);
+          var currentRoleName = getCurrentRoleName(proj.stage);
+          var now = new Date();
+          var formattedDate = now.toLocaleDateString('en-GB') + ' ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+          proj.remarks.push({
+            id: Date.now(),
+            author: currentRoleName,
+            text: text,
+            timestamp: formattedDate,
+            stage: currentStageName
+          });
+
+          saveProjects();
+          $('#inpNewRemark').val('');
+          renderProjectRemarks(proj);
+        }
+      }
+
+      $('#btnAddRemark').click(addNewRemark);
+      $('#inpNewRemark').on('keypress', function (e) {
+        if (e.which === 13) {
+          e.preventDefault();
+          addNewRemark();
+        }
       });
 
       // Dynamic Machine Type validation logic (Spares & ARP)
@@ -2991,7 +3135,7 @@
         let poUrl = poFile ? await fileToDataUrl(poFile) : null;
 
         let newId = Date.now();
-        projectsData.unshift({
+        let newProj = {
           id: newId,
           status: "New",
           projNo: "TBD",
@@ -3011,8 +3155,11 @@
           stage: isElectrical ? 1.5 : 1, // Stage 1.5 if electrical only
           owner: "Design Team",
           pm: "Pending",
-          isElectrical: isElectrical
-        });
+          isElectrical: isElectrical,
+          remarks: []
+        };
+        addAutoRemark(newProj, "Sales Team", `Project initiated for ${client} (${site}) - ${machine}.`, "Project Initiation");
+        projectsData.unshift(newProj);
 
         saveProjects();
         renderTable();
@@ -3056,6 +3203,7 @@
           proj.desc = $('#inpAllocateDesc').val();
           proj.stage = 2; // PENDING_DIRECTOR_DECISION
           proj.owner = "Director";
+          addAutoRemark(proj, "Design Team", `Allocated Project No. ${proj.projNo}. Description: ${proj.desc}`, "Project Allocation");
           saveProjects();
           renderTable();
         }
@@ -3071,6 +3219,7 @@
           proj.timeline = proj.timeline || {}; proj.timeline[proj.stage] = new Date().toLocaleDateString();
           proj.stage = 2; // Move to director decision after electrical design
           proj.owner = "Director";
+          addAutoRemark(proj, "Electrical Team", "Electrical design phase completed.", "Electrical Design");
           saveProjects();
           renderTable();
           Swal.fire({ icon: 'success', title: 'Electrical Design Completed', timer: 2000, showConfirmButton: false });
@@ -3089,6 +3238,7 @@
           proj.timeline = proj.timeline || {}; proj.timeline[proj.stage] = new Date().toLocaleDateString();
           proj.stage = 3; // AWAITING_ADVANCE
           proj.owner = "Finance";
+          addAutoRemark(proj, "Director", "Director Decision: Proceed WITH Advance Payment.", "Director Decision");
           saveProjects();
           renderTable();
         }
@@ -3102,6 +3252,7 @@
           proj.stage = 4; // PENDING_PM_ASSIGNMENT
           proj.owner = "COO/VP";
           proj.bypassedAdvance = true;
+          addAutoRemark(proj, "Director", "Director Decision: Proceed WITHOUT Advance Payment (Bypassed to VP).", "Director Decision");
           saveProjects();
           renderTable();
         }
@@ -3127,6 +3278,7 @@
           proj.timeline = proj.timeline || {}; proj.timeline[proj.stage] = new Date().toLocaleDateString();
           proj.stage = 4; // PENDING_PM_ASSIGNMENT
           proj.owner = "COO/VP";
+          addAutoRemark(proj, "Finance Team", `Advance collection completed${proj.advanceAmount ? ' (' + proj.advanceAmount + ')' : ''}.`, "Advance Collection");
           saveProjects();
           renderTable();
         }
@@ -3148,6 +3300,7 @@
           proj.pm = $('#inpSelectPm').val();
           proj.stage = 5; // PENDING_KICKOFF
           proj.owner = "Project Manager";
+          addAutoRemark(proj, "COO / VP", `Project Manager ${proj.pm} assigned to project.`, "PM Allocation");
           saveProjects();
           renderTable();
         }
