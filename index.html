@@ -1817,34 +1817,53 @@
     </div>
   </div>
 
-  <!-- Excel Viewer Modal -->
+  <!-- Excel Viewer / LOE Manager Modal -->
   <div class="modal fade" id="excelViewerModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
       <div class="modal-content shadow">
-        <div class="modal-header bg-light">
-          <h5 class="modal-title"><i class="fa fa-file-excel text-success me-2"></i> LOE Document Viewer</h5>
+        <div class="modal-header bg-light d-flex justify-content-between align-items-center py-2">
+          <h5 class="modal-title mb-0 fs-6 fw-bold text-dark"><i class="fa fa-file-excel text-success me-2"></i> LOE Document Manager & Equipment List</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <div class="modal-body p-0">
-          <table class="table table-sm table-bordered table-hover mb-0" id="excelViewerTable"
-            style="font-size: 0.9rem;">
-            <thead class="table-light sticky-top">
+        <div class="p-2 bg-light border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <select id="excelViewerSheetFilter" class="form-select form-select-sm" style="width: auto; max-width: 220px;"></select>
+            <input type="text" id="excelViewerSearch" class="form-control form-control-sm" placeholder="🔍 Search equipment or drawing..." style="width: 240px;" />
+          </div>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <button type="button" class="btn btn-sm btn-outline-success fw-bold" onclick="addLoeEquipmentRow()"><i class="fa fa-plus me-1"></i> Add Equipment</button>
+            <button type="button" class="btn btn-sm btn-primary fw-bold" onclick="$('#inpReplaceLoeFile').click()"><i class="fa fa-file-upload me-1"></i> Replace Excel File</button>
+            <button type="button" class="btn btn-sm btn-success fw-bold" onclick="saveLoeTableEdits()"><i class="fa fa-save me-1"></i> Save Changes</button>
+            <input type="file" id="inpReplaceLoeFile" accept=".xls,.xlsx" style="display: none;" />
+          </div>
+        </div>
+        <div class="modal-body p-0" style="max-height: 65vh; overflow-y: auto;">
+          <table class="table table-sm table-bordered table-hover mb-0" id="excelViewerTable" style="font-size: 0.88rem;">
+            <thead class="table-light sticky-top shadow-sm" style="z-index: 5;">
               <tr>
-                <th style="width: 60px" class="text-center">Auto ID</th>
-                <th style="width: 80px" class="text-center">SR NO</th>
-                <th>Assembly Name</th>
-                <th>Drawing/Doc No</th>
-                <th style="width: 150px">Dispatch Week</th>
-                <th style="width: 200px">Billing Value INR</th>
+                <th style="width: 45px" class="text-center">#</th>
+                <th style="width: 100px">Sheet</th>
+                <th style="width: 75px" class="text-center">SR NO</th>
+                <th style="width: 120px">Section</th>
+                <th>Equipment / Assembly Name</th>
+                <th style="width: 180px">Drawing / Doc No</th>
+                <th style="width: 55px" class="text-center">Qty</th>
+                <th style="width: 110px">Status</th>
+                <th style="width: 95px" class="text-center">Dispatch Wk</th>
+                <th style="width: 110px" class="text-end">Billing (₹)</th>
+                <th style="width: 45px" class="text-center">Action</th>
               </tr>
             </thead>
             <tbody></tbody>
           </table>
         </div>
-        <div class="modal-footer bg-light">
-          <button class="btn btn-outline-secondary btn-sm" id="btnDownloadLoeOrigin"><i class="fa fa-download me-1"></i>
-            Download Original .xls</button>
-          <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+        <div class="modal-footer bg-light d-flex justify-content-between py-2">
+          <div>
+            <button class="btn btn-outline-secondary btn-sm" id="btnDownloadLoeOrigin"><i class="fa fa-download me-1"></i> Download Original .xls</button>
+          </div>
+          <div>
+            <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+          </div>
         </div>
       </div>
     </div>
@@ -2840,6 +2859,11 @@
 
             var rowStr = row.map(c => String(c).toUpperCase()).join(' ');
 
+            // Stop parsing if Revision Note block is encountered
+            if (rowStr.includes('REVISION NOTE') || rowStr.includes('PREPARED BY') || rowStr.includes('CHECKED BY') || rowStr.includes('APPROVED BY')) {
+              break;
+            }
+
             if (rowStr.includes('BO SPECIFICATION') || rowStr.includes('BO SPEC')) {
               mode = 'BO';
               boHeaderIdx = i;
@@ -2938,7 +2962,65 @@
       }
       window.parseLOEWorkbook = parseLOEWorkbook;
 
+      var currentEditingLoeProjId = null;
+
+      function renderLoeViewerTableRows(loeItems) {
+        var tbody = $('#excelViewerTable tbody');
+        tbody.empty();
+
+        (loeItems || []).forEach(function (item, idx) {
+          var sheetName = item.sheetName || 'Terminal';
+          var isBo = item.sectionType === 'BO Specification';
+          var statusOptions = ['Pending', 'Issued', 'Released', 'In Progress', 'Completed'].map(st => {
+            var sel = (item.designStatus || 'Pending').toLowerCase() === st.toLowerCase() ? 'selected' : '';
+            return `<option value="${st}" ${sel}>${st}</option>`;
+          }).join('');
+
+          tbody.append(`
+            <tr data-idx="${idx}" data-sheet="${escapeHtml(sheetName)}" data-type="${escapeHtml(item.sectionType || 'Assembly')}">
+              <td class="text-center fw-bold text-muted small py-1 align-middle">${item.autoId || (idx + 1)}</td>
+              <td class="py-1 align-middle">
+                <input type="text" class="form-control form-control-sm loe-inp-sheet py-0 px-1 border-0 bg-transparent text-muted small" value="${escapeHtml(sheetName)}" title="Sheet Name" />
+              </td>
+              <td class="py-1 align-middle">
+                <input type="text" class="form-control form-control-sm loe-inp-sr text-center py-0 px-1 fw-bold" value="${escapeHtml(item.srNo || '')}" />
+              </td>
+              <td class="py-1 align-middle">
+                <input type="text" class="form-control form-control-sm loe-inp-sec py-0 px-1 text-muted small" value="${escapeHtml(item.section || '')}" />
+              </td>
+              <td class="py-1 align-middle">
+                <div class="d-flex align-items-center gap-1">
+                  ${isBo ? '<span class="badge bg-warning text-dark flex-shrink-0" style="font-size: 0.65rem;">BO</span>' : '<span class="badge bg-secondary opacity-75 flex-shrink-0" style="font-size: 0.65rem;">ASM</span>'}
+                  <input type="text" class="form-control form-control-sm loe-inp-name py-0 px-1 fw-bold" value="${escapeHtml(item.assemblyName || '')}" placeholder="Equipment / Assembly Name" />
+                </div>
+              </td>
+              <td class="py-1 align-middle">
+                <input type="text" class="form-control form-control-sm loe-inp-dwg py-0 px-1 font-monospace text-primary" value="${escapeHtml(item.drawingNo || '')}" placeholder="Drawing/Doc No" />
+              </td>
+              <td class="py-1 align-middle">
+                <input type="text" class="form-control form-control-sm loe-inp-qty text-center py-0 px-1" value="${escapeHtml(item.qty || '1')}" />
+              </td>
+              <td class="py-1 align-middle">
+                <select class="form-select form-select-sm loe-inp-status py-0 px-1 small">
+                  ${statusOptions}
+                </select>
+              </td>
+              <td class="py-1 align-middle">
+                <input type="text" class="form-control form-control-sm loe-inp-dispatch py-0 px-1 text-center" value="${escapeHtml(item.dispatchWeek || '')}" placeholder="e.g. W24" />
+              </td>
+              <td class="py-1 align-middle">
+                <input type="text" class="form-control form-control-sm loe-inp-billing py-0 px-1 text-end text-success fw-bold" value="${escapeHtml(item.billingValue || '')}" placeholder="₹ 0" />
+              </td>
+              <td class="text-center py-1 align-middle">
+                <button type="button" class="btn btn-xs btn-outline-danger p-1 border-0" onclick="deleteLoeRow(this)" title="Delete Row"><i class="fa fa-trash"></i></button>
+              </td>
+            </tr>
+          `);
+        });
+      }
+
       window.openExcelViewer = function (projId) {
+        currentEditingLoeProjId = projId;
         let proj = getProject(projId);
         if (!proj || !proj.loeData || proj.loeData.length === 0) {
           openProjectFileFromId(projId, 'loeUrl');
@@ -2946,8 +3028,6 @@
         }
 
         $('#detailsModal').modal('hide');
-        var tbody = $('#excelViewerTable tbody');
-        tbody.empty();
 
         // Populate sheet filter options
         var sheets = [...new Set(proj.loeData.map(d => d.sheetName).filter(Boolean))];
@@ -2957,27 +3037,9 @@
           sheetFilterHtml += `<option value="${escapeHtml(s)}">${escapeHtml(s)} (${sCount})</option>`;
         });
         $('#excelViewerSheetFilter').html(sheetFilterHtml);
+        $('#excelViewerSearch').val('');
 
-        proj.loeData.forEach(function (item) {
-          var typeBadge = item.sectionType === 'BO Specification' ? '<span class="badge bg-warning text-dark me-1">BO Spec</span>' : '<span class="badge bg-secondary opacity-75 me-1">ASM</span>';
-          var sheetBadge = item.sheetName ? `<span class="badge bg-light text-dark border me-1">${escapeHtml(item.sheetName)}</span>` : '';
-          var statusBadge = item.designStatus ? `<span class="badge ${item.designStatus.toLowerCase() === 'issued' ? 'bg-success' : 'bg-secondary'}">${escapeHtml(item.designStatus)}</span>` : '-';
-
-          tbody.append(`
-            <tr data-sheet="${escapeHtml(item.sheetName || '')}" data-type="${escapeHtml(item.sectionType || '')}">
-              <td class="text-center fw-bold text-muted">${item.autoId}</td>
-              <td class="small">${sheetBadge}</td>
-              <td class="fw-bold text-center">${escapeHtml(item.srNo || '-')}</td>
-              <td class="small text-muted">${escapeHtml(item.section || '-')}</td>
-              <td>${typeBadge} <strong>${escapeHtml(item.assemblyName || '')}</strong></td>
-              <td><span class="text-primary font-monospace small">${escapeHtml(item.drawingNo || '-')}</span></td>
-              <td class="text-center">${escapeHtml(item.qty || '-')}</td>
-              <td class="small">${statusBadge}</td>
-              <td>${getWeekColorBadge(item.dispatchWeek)}</td>
-              <td><span class="text-success fw-bold">${item.billingValue ? '₹' + item.billingValue : '-'}</span></td>
-            </tr>
-          `);
-        });
+        renderLoeViewerTableRows(proj.loeData);
 
         $('#btnDownloadLoeOrigin').off('click').on('click', function () {
           openProjectFileFromId(projId, 'loeUrl');
@@ -2985,6 +3047,166 @@
 
         $('#excelViewerModal').modal('show');
       };
+
+      // Search & Sheet Filter for LOE Table
+      $(document).on('input change', '#excelViewerSearch, #excelViewerSheetFilter', function () {
+        var query = ($('#excelViewerSearch').val() || '').toLowerCase().trim();
+        var sheetSel = $('#excelViewerSheetFilter').val();
+
+        $('#excelViewerTable tbody tr').each(function () {
+          var rowSheet = $(this).attr('data-sheet') || '';
+          var rowText = $(this).find('input').map(function () { return $(this).val(); }).get().join(' ').toLowerCase();
+
+          var matchSheet = !sheetSel || rowSheet === sheetSel;
+          var matchQuery = !query || rowText.includes(query);
+
+          if (matchSheet && matchQuery) {
+            $(this).show();
+          } else {
+            $(this).hide();
+          }
+        });
+      });
+
+      window.addLoeEquipmentRow = function () {
+        var proj = getProject(currentEditingLoeProjId);
+        if (!proj) return;
+        proj.loeData = proj.loeData || [];
+        var newAutoId = proj.loeData.length + 1;
+        var newItem = {
+          autoId: newAutoId,
+          sheetName: $('#excelViewerSheetFilter').val() || 'Terminal',
+          sectionType: 'Assembly',
+          srNo: String(newAutoId),
+          section: 'General',
+          assemblyName: 'New Equipment ' + newAutoId,
+          drawingNo: '',
+          qty: '1',
+          designStatus: 'Pending',
+          dispatchWeek: '',
+          billingValue: ''
+        };
+        proj.loeData.push(newItem);
+        renderLoeViewerTableRows(proj.loeData);
+        $('#excelViewerModal .modal-body').scrollTop($('#excelViewerModal .modal-body')[0].scrollHeight);
+      };
+
+      window.deleteLoeRow = function (btn) {
+        var tr = $(btn).closest('tr');
+        var idx = parseInt(tr.attr('data-idx'));
+        if (!isNaN(idx) && currentEditingLoeProjId) {
+          var proj = getProject(currentEditingLoeProjId);
+          if (proj && proj.loeData) {
+            proj.loeData.splice(idx, 1);
+            proj.loeData.forEach((item, i) => item.autoId = i + 1);
+            renderLoeViewerTableRows(proj.loeData);
+          }
+        } else {
+          tr.remove();
+        }
+      };
+
+      window.saveLoeTableEdits = function () {
+        var proj = getProject(currentEditingLoeProjId);
+        if (!proj) return;
+
+        var updatedLoeData = [];
+        $('#excelViewerTable tbody tr').each(function (i) {
+          var tr = $(this);
+          var sheetName = tr.find('.loe-inp-sheet').val() || 'Terminal';
+          var srNo = tr.find('.loe-inp-sr').val() || String(i + 1);
+          var section = tr.find('.loe-inp-sec').val() || '';
+          var assemblyName = tr.find('.loe-inp-name').val() || '';
+          var drawingNo = tr.find('.loe-inp-dwg').val() || '';
+          var qty = tr.find('.loe-inp-qty').val() || '1';
+          var designStatus = tr.find('.loe-inp-status').val() || 'Pending';
+          var dispatchWeek = tr.find('.loe-inp-dispatch').val() || '';
+          var billingValue = tr.find('.loe-inp-billing').val() || '';
+
+          if (assemblyName || drawingNo || srNo) {
+            updatedLoeData.push({
+              autoId: i + 1,
+              sheetName: sheetName,
+              sectionType: tr.attr('data-type') || 'Assembly',
+              srNo: srNo,
+              section: section,
+              assemblyName: assemblyName,
+              drawingNo: drawingNo,
+              qty: qty,
+              designStatus: designStatus,
+              dispatchWeek: dispatchWeek,
+              billingValue: billingValue
+            });
+          }
+        });
+
+        proj.loeData = updatedLoeData;
+        addAutoRemark(proj, getCurrentRoleName(), `Updated LOE equipment list (${updatedLoeData.length} items).`, "LOE Document");
+        saveProjects();
+        renderTable();
+
+        Swal.fire({
+          icon: 'success',
+          title: 'LOE Equipment List Saved',
+          text: `Successfully saved changes to ${updatedLoeData.length} equipment items.`,
+          timer: 2000,
+          showConfirmButton: false
+        });
+      };
+
+      // Handler for Replace LOE Excel File input
+      $(document).on('change', '#inpReplaceLoeFile', function (e) {
+        var file = e.target.files[0];
+        if (!file || !currentEditingLoeProjId) return;
+
+        var proj = getProject(currentEditingLoeProjId);
+        if (!proj) return;
+
+        var reader = new FileReader();
+        reader.onload = async function (evt) {
+          try {
+            var data = new Uint8Array(evt.target.result);
+            var workbook = XLSX.read(data, { type: 'array' });
+            var newLoeData = parseLOEWorkbook(workbook);
+
+            if (newLoeData.length === 0) {
+              Swal.fire('No Equipment Found', 'Could not parse any valid LOE equipment items from the selected Excel file.', 'warning');
+              return;
+            }
+
+            proj.hasLoe = true;
+            proj.loeUrl = await fileToDataUrl(file);
+            proj.loeData = newLoeData;
+
+            addAutoRemark(proj, getCurrentRoleName(), `Replaced LOE Excel file with new version (${newLoeData.length} equipment items across all sheets).`, "LOE Document");
+            saveProjects();
+            renderTable();
+
+            // Refresh viewer UI
+            var sheets = [...new Set(proj.loeData.map(d => d.sheetName).filter(Boolean))];
+            var sheetFilterHtml = '<option value="">All Sheets (' + proj.loeData.length + ' Items)</option>';
+            sheets.forEach(function (s) {
+              var sCount = proj.loeData.filter(d => d.sheetName === s).length;
+              sheetFilterHtml += `<option value="${escapeHtml(s)}">${escapeHtml(s)} (${sCount})</option>`;
+            });
+            $('#excelViewerSheetFilter').html(sheetFilterHtml);
+            renderLoeViewerTableRows(proj.loeData);
+
+            Swal.fire({
+              icon: 'success',
+              title: 'LOE Excel Replaced!',
+              text: `Successfully replaced LOE document with ${newLoeData.length} equipment items.`,
+              timer: 2500,
+              showConfirmButton: false
+            });
+          } catch (err) {
+            console.error(err);
+            Swal.fire('Error Replacing LOE', err.message || err, 'error');
+          }
+          $('#inpReplaceLoeFile').val('');
+        };
+        reader.readAsArrayBuffer(file);
+      });
 
       // Initialize DataTable
       var dt = $('#kickoffTable').DataTable({
