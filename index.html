@@ -590,6 +590,10 @@
       color: #1f2937;
     }
 
+    .dropdown-menu {
+      z-index: 1060;
+    }
+
     .table-wrap {
       background: #fff;
       border: 1px solid #e6eaf0;
@@ -1194,7 +1198,7 @@
                 <button class="btn btn-secondary btn-sm dropdown-toggle fw-bold" type="button" id="dropdownFiltersMenu" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
                   <i class="fa fa-filter me-1"></i> Filters
                 </button>
-                <div class="dropdown-menu p-3 shadow" style="min-width: 230px;" aria-labelledby="dropdownFiltersMenu">
+                <div class="dropdown-menu p-3 shadow" style="min-width: 230px; z-index: 1060;" aria-labelledby="dropdownFiltersMenu">
                   <div class="form-check mb-2">
                     <input class="form-check-input" type="checkbox" id="filterAllEquipments" checked onchange="toggleFilterOption('all')">
                     <label class="form-check-label small fw-bold" for="filterAllEquipments">All Equipments</label>
