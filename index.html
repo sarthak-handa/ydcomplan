@@ -2851,22 +2851,29 @@
             }
           }
 
+          function normHeader(s) {
+            return String(s || '').replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase();
+          }
+
           var startRow = headerRowIdx !== -1 ? headerRowIdx + 1 : 0;
+          var hasSubHeader = false;
           if (headerRowIdx !== -1 && headerRowIdx + 1 < rows.length) {
-            var subStr = (rows[headerRowIdx + 1] || []).map(c => String(c).toUpperCase()).join(' ');
-            if (subStr.includes('REV') || subStr.includes('TOTAL') || subStr.includes('UNIT') || subStr.includes('DRAWING NO')) {
+            var subStr = (rows[headerRowIdx + 1] || []).map(c => normHeader(c)).join(' ');
+            if (subStr.includes('REV NO') || subStr.includes('TOTAL WT') || subStr.includes('UNIT WT') || subStr.includes('REV')) {
               startRow = headerRowIdx + 2;
+              hasSubHeader = true;
             }
           }
 
           var mainHeader = headerRowIdx !== -1 ? rows[headerRowIdx] : [];
-          var subHeader = (headerRowIdx !== -1 && rows[headerRowIdx + 1]) ? rows[headerRowIdx + 1] : [];
+          var subHeader = (hasSubHeader && headerRowIdx + 1 < rows.length) ? rows[headerRowIdx + 1] : [];
 
           function findCol(keywords, defaultIdx) {
-            for (var c = 0; c < Math.max(mainHeader.length, subHeader.length); c++) {
-              var cellMain = String(mainHeader[c] || '').toUpperCase();
-              var cellSub = String(subHeader[c] || '').toUpperCase();
-              var combined = cellMain + ' ' + cellSub;
+            var maxC = Math.max(mainHeader.length, subHeader.length);
+            for (var c = 0; c < maxC; c++) {
+              var cellMain = normHeader(mainHeader[c]);
+              var cellSub = hasSubHeader ? normHeader(subHeader[c]) : '';
+              var combined = (cellMain + ' ' + cellSub).trim();
               if (keywords.some(k => combined.includes(k))) {
                 return c;
               }
@@ -2874,23 +2881,25 @@
             return defaultIdx;
           }
 
+          var isFurnace = String(sheetName || '').toUpperCase().includes('FURNACE');
+
           var srNoCol = findCol(['SR.', 'SR NO', 'SR.'], 0);
           var sectionCol = findCol(['SECTION', 'EQUIPMENT'], 1);
-          var assemblyCol = findCol(['GA/ASSEMBLY', 'ASSEMBLY', 'EQUIPMENT'], 2);
-          var drawingNoCol = findCol(['DRAWING/DOC', 'DOC/DRG NUMBER', 'DRAWING NO', 'DOCUMENT NO'], 3);
-          var qtyCol = findCol(['QTY', 'QTY.'], 6);
-          var docRevCol = findCol(['DOC/DRG REV', 'REV NO.'], 4);
-          var bomRevCol = findCol(['BOM REV'], 5);
-          var remarkCol = findCol(['REMARK', 'REMARKS'], 7);
-          var refDwgCol = findCol(['REFERENCE DRAWING', 'REFERENCE'], 8);
-          var refRevCol = findCol(['REF REV', 'REV NO'], 9);
-          var scopeCol = findCol(['SCOPE'], 10);
-          var unitWtCol = findCol(['UNIT WT'], 11);
-          var totalWtCol = findCol(['TOTAL WT', 'WEIGHT (KG)', 'WEIGHT'], 12);
-          var planDateCol = findCol(['PLAN DATE'], 13);
-          var issuedDateCol = findCol(['ISSUED DATE', 'ACTUAL DATE', 'ISSUE DATE'], 14);
+          var assemblyCol = findCol(['GA/ASSEMBLY', 'ASSEMBLY'], 2);
+          var drawingNoCol = findCol(['DRAWING/DOC', 'DOC/DRG NUMBER', 'DOC/DRG NO', 'DRAWING NO', 'DOCUMENT NO'], 3);
+          var qtyCol = findCol(['QTY', 'QTY.'], isFurnace ? 4 : 6);
+          var docRevCol = findCol(['DOC/DRG REV', 'DOC/ DRG REV', 'DRG REV', 'DOC REV', 'REV NO'], isFurnace ? 5 : 4);
+          var bomRevCol = findCol(['BOM REV', 'BOMREV'], isFurnace ? 6 : 5);
+          var remarkCol = findCol(['REMARK', 'REMARKS'], isFurnace ? 13 : 7);
+          var refDwgCol = findCol(['REFERENCE DRAWING', 'REFERENCE'], isFurnace ? 9 : 8);
+          var refRevCol = findCol(['REF REV', 'REV NO'], isFurnace ? 9 : 9);
+          var scopeCol = findCol(['SCOPE'], isFurnace ? 8 : 10);
+          var unitWtCol = findCol(['UNIT WT'], isFurnace ? 7 : 11);
+          var totalWtCol = findCol(['WEIGHT (KG)', 'WEIGHT', 'TOTAL WT'], isFurnace ? 7 : 12);
+          var planDateCol = findCol(['PLAN DATE'], isFurnace ? 10 : 13);
+          var issuedDateCol = findCol(['ISSUED DATE', 'ACTUAL DATE', 'ISSUE DATE'], isFurnace ? 11 : 14);
           var designEngCol = findCol(['DESIGN ENGINEER'], 15);
-          var designStatusCol = findCol(['DESIGN STATUS', 'STATUS'], 16);
+          var designStatusCol = findCol(['DESIGN STATUS', 'STATUS'], isFurnace ? 12 : 16);
 
           var mode = 'MAIN';
           var boHeaderIdx = -1;
@@ -3283,6 +3292,9 @@
         addAutoRemark(proj, getCurrentRoleName(), `Updated LOE equipment list (${updatedLoeData.length} items).`, "LOE Document");
         saveProjects();
         renderTable();
+        if ($('#drawingsAssembliesDetail').is(':visible') && currentEditingLoeProjId) {
+          openProjectDrawings(currentEditingLoeProjId);
+        }
 
         Swal.fire({
           icon: 'success',
@@ -3320,6 +3332,9 @@
             addAutoRemark(proj, getCurrentRoleName(), `Replaced LOE Excel file with new version (${newLoeData.length} equipment items across all sheets).`, "LOE Document");
             saveProjects();
             renderTable();
+            if ($('#drawingsAssembliesDetail').is(':visible') && currentEditingLoeProjId) {
+              openProjectDrawings(currentEditingLoeProjId);
+            }
 
             // Refresh viewer UI
             var sheets = [...new Set(proj.loeData.map(d => d.sheetName).filter(Boolean))];
@@ -3982,6 +3997,9 @@
               addAutoRemark(proj, "Design Team", `LOE document uploaded with ${loeData.length} items parsed across all sheets.`, "LOE Document");
               saveProjects();
               renderTable();
+              if ($('#drawingsAssembliesDetail').is(':visible') && proj) {
+                openProjectDrawings(proj.id);
+              }
             }
             $('#loeModal').modal('hide');
             $('#inpLoeFile').val('');
@@ -4451,6 +4469,16 @@
       renderAssemblies();
     };
 
+    window.isType1Parent = function (a) {
+      if (!a || a.isSection) return false;
+      let sr = String(a.srNo || '').trim();
+      if (!sr || sr.startsWith('BO')) return false;
+      let base = sr.split('.')[0];
+      let list = window.allAssemblies || [];
+      let children = list.filter(x => !x.isSection && x !== a && String(x.srNo || '').trim().startsWith(base + '.') && !String(x.srNo || '').trim().endsWith('.0'));
+      return children.length > 0 && (sr === base || sr === base + '.0' || sr.endsWith('.0'));
+    };
+
     window.rowHtml = function (a, opts) {
       if (a.isSection) {
         return `
@@ -4465,7 +4493,6 @@
       const isReleased = drawingCount > 0;
 
       const sr = String(a.srNo || "");
-      const isChild = sr.includes('.');
       const rowClasses = (opts.isParent ? "parent-row bg-light" : `child-row child-of-${opts.parentKey}${opts.startOpen ? "" : " d-none"}`) + (opts.isParent ? " sr-whole-row" : "");
 
       const chevron = opts.isParent
@@ -4473,7 +4500,9 @@
         : "";
 
       if (opts.isParent) {
-        let children = allAssemblies.filter(x => !x.isSection && String(x.srNo).startsWith(sr + "."));
+        let baseKey = sr.split('.')[0];
+        let list = window.allAssemblies || [];
+        let children = list.filter(x => !x.isSection && String(x.srNo || '').trim().startsWith(baseKey + '.') && !String(x.srNo || '').trim().endsWith('.0'));
         let totalChild = children.length;
         let dwgChild = children.filter(c => (c.drawingFiles || []).length > 0).length;
         let bomChild = children.filter(c => (c.subtasks || []).length > 0).length;
@@ -4615,9 +4644,9 @@
         filtered = items;
       }
 
-      // Compute Stats
-      const realAssemblies = filtered.filter((a) => !isDividerRow(a) && (a.srNo && String(a.srNo).includes('.')));
-      const total = realAssemblies.length || filtered.filter(a => !isDividerRow(a)).length;
+      // Compute Stats: Count ONLY Type 2 Actionable Assemblies & Subassemblies (exclude Type 1 Parents)
+      const realAssemblies = filtered.filter((a) => !a.isSection && !isDividerRow(a) && !isType1Parent(a));
+      const total = realAssemblies.length;
       const released = realAssemblies.filter((a) => (a.drawingFiles || []).length > 0).length;
 
       document.getElementById("statTotal").textContent = total;
@@ -4638,19 +4667,17 @@
           html += `<tr class="section-divider"><td colspan="7">${escapeHtml(a.assemblyName)}</td></tr>`;
           sIdx++;
         } else {
-          let sr = String(a.srNo);
-          let isChild = sr.indexOf(".") >= 0;
-          let key = isChild ? sr.split('.')[0] : sr;
-          let kSafe = `s${sIdx}_${key}`;
+          let sr = String(a.srNo || '').trim();
+          let baseKey = sr.split('.')[0];
+          let kSafe = `s${sIdx}_${baseKey}`;
 
-          let hasChildren = false;
-          if (!isChild) {
-            hasChildren = filtered.some(x => !x.isSection && String(x.srNo).startsWith(sr + "."));
-          }
+          let isParent = isType1Parent(a);
+          let list = window.allAssemblies || [];
+          let children = list.filter(x => !x.isSection && x !== a && String(x.srNo || '').trim().startsWith(baseKey + '.') && !String(x.srNo || '').trim().endsWith('.0'));
 
           html += rowHtml(a, {
-            isParent: !isChild,
-            hasChildren: hasChildren,
+            isParent: isParent,
+            hasChildren: children.length > 0,
             startOpen: true,
             parentKey: kSafe
           });
@@ -5365,8 +5392,8 @@
     };
 
     // Event Listeners for Drawings View
-    document.getElementById('filterText').addEventListener('keyup', renderAssemblies);
-    document.getElementById('filterPendingOnly').addEventListener('change', renderAssemblies);
+    document.getElementById('filterText')?.addEventListener('keyup', renderAssemblies);
+    document.getElementById('filterPendingOnly')?.addEventListener('change', renderAssemblies);
 
     // Subtasks Bulk Paste Logic
     $(document).on('paste', '.st-paste-target', function (e) {
