@@ -1224,28 +1224,30 @@
               </div>
             </div>
 
+
+
             <div id="tableWrap" class="table-wrap">
               <div class="table-responsive">
                 <table class="table table-bordered table-hover assemblies mb-0 align-middle" id="assembliesTable" style="font-size: 0.88rem;">
-                  <thead class="table-dark sticky-top shadow-sm">
-                    <tr id="assembliesHeaderRow">
-                      <th class="sortable" data-sort-key="srNo" onclick="toggleAssembliesSort('srNo')" style="width: 70px; cursor: pointer;">SR <i class="fa fa-sort opacity-50 ms-1" style="font-size: 0.75rem;"></i></th>
-                      <th class="sortable" data-sort-key="assemblyName" onclick="toggleAssembliesSort('assemblyName')" style="cursor: pointer;">ASSEMBLY <i class="fa fa-sort opacity-50 ms-1" style="font-size: 0.75rem;"></i></th>
-                      <th class="sortable" data-sort-key="drawingDocNo" onclick="toggleAssembliesSort('drawingDocNo')" style="width: 180px; cursor: pointer;">DRAWING / DOC NO <i class="fa fa-sort opacity-50 ms-1" style="font-size: 0.75rem;"></i></th>
-                      <th style="width: 60px" class="text-center">QTY</th>
-                      <th class="sortable text-center" data-sort-key="releaseWeek" onclick="toggleAssembliesSort('releaseWeek')" style="width: 110px; cursor: pointer;">RELEASE WEEK <i class="fa fa-sort opacity-50 ms-1" style="font-size: 0.75rem;"></i></th>
-                      <th class="sortable text-center" data-sort-key="status" onclick="toggleAssembliesSort('status')" style="width: 100px; cursor: pointer;">STATUS <i class="fa fa-sort opacity-50 ms-1" style="font-size: 0.75rem;"></i></th>
-                      <th style="width: 360px;">DRAWINGS AND BOM UPLOAD</th>
+                  <thead class="sticky-top shadow-sm" style="background-color: #2b4964; color: white;">
+                    <tr id="assembliesHeaderRow" class="text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                      <th class="sortable text-nowrap py-2" data-sort-key="srNo" onclick="toggleAssembliesSort('srNo')" style="width: 90px; cursor: pointer; color: white;"><span class="toggle-chevron open text-white me-1" onclick="toggleAllAssemblies(event, this)"><i class="fa fa-chevron-right"></i></span>SR <i class="fa fa-sort opacity-50 ms-1"></i></th>
+                      <th class="sortable py-2" data-sort-key="assemblyName" onclick="toggleAssembliesSort('assemblyName')" style="width: 220px; cursor: pointer; color: white;">ASSEMBLY <i class="fa fa-sort opacity-50 ms-1"></i></th>
+                      <th class="sortable py-2" data-sort-key="drawingDocNo" onclick="toggleAssembliesSort('drawingDocNo')" style="width: 180px; cursor: pointer; color: white;">DOC NO <i class="fa fa-sort opacity-50 ms-1"></i></th>
+                      <th style="width: 60px; color: white;" class="text-center py-2">QTY</th>
+                      <th class="sortable text-center py-2" data-sort-key="releaseWeek" onclick="toggleAssembliesSort('releaseWeek')" style="width: 110px; cursor: pointer; color: white;">RELEASE WEEK <i class="fa fa-sort opacity-50 ms-1"></i></th>
+                      <th class="sortable text-center py-2" data-sort-key="status" onclick="toggleAssembliesSort('status')" style="width: 100px; cursor: pointer; color: white;">STATUS <i class="fa fa-sort opacity-50 ms-1"></i></th>
+                      <th style="width: 480px; color: white;" class="py-2">DRAWINGS AND BOM UPLOAD</th>
                     </tr>
                     <!-- Sub-Search Row -->
-                    <tr class="table-light py-1" id="assembliesSearchRow">
-                      <td class="p-1"><input type="text" id="colSearchSr" class="form-control form-control-sm text-center py-0 px-1" placeholder="SR" onkeyup="renderAssemblies()" /></td>
-                      <td class="p-1"><input type="text" id="colSearchAssembly" class="form-control form-control-sm py-0 px-1" placeholder="Assembly" onkeyup="renderAssemblies()" /></td>
-                      <td class="p-1"><input type="text" id="colSearchDocNo" class="form-control form-control-sm py-0 px-1" placeholder="Doc No" onkeyup="renderAssemblies()" /></td>
-                      <td class="p-1"></td>
-                      <td class="p-1"><input type="text" id="colSearchReleaseWeek" class="form-control form-control-sm text-center py-0 px-1" placeholder="Release Wk" onkeyup="renderAssemblies()" /></td>
-                      <td class="p-1"><input type="text" id="colSearchStatus" class="form-control form-control-sm text-center py-0 px-1" placeholder="Status" onkeyup="renderAssemblies()" /></td>
-                      <td class="p-1"></td>
+                    <tr id="assembliesSearchRow">
+                      <td class="p-1 border-0"><input type="text" id="colSearchSr" class="form-control form-control-sm text-center py-1 px-2 border-0" placeholder="SR" onkeyup="renderAssemblies()" /></td>
+                      <td class="p-1 border-0"><input type="text" id="colSearchAssembly" class="form-control form-control-sm py-1 px-2 border-0" placeholder="Assembly" onkeyup="renderAssemblies()" /></td>
+                      <td class="p-1 border-0"><input type="text" id="colSearchDocNo" class="form-control form-control-sm py-1 px-2 border-0" placeholder="Doc No" onkeyup="renderAssemblies()" /></td>
+                      <td class="p-1 border-0"><input type="text" disabled class="form-control form-control-sm text-center py-1 px-2 border-0 bg-white" placeholder="Qty" /></td>
+                      <td class="p-1 border-0"><input type="text" id="colSearchReleaseWeek" class="form-control form-control-sm text-center py-1 px-2 border-0" placeholder="Release Week" onkeyup="renderAssemblies()" /></td>
+                      <td class="p-1 border-0"><input type="text" id="colSearchStatus" class="form-control form-control-sm text-center py-1 px-2 border-0" placeholder="Status" onkeyup="renderAssemblies()" /></td>
+                      <td class="p-1 border-0"></td>
                     </tr>
                   </thead>
                   <tbody id="assembliesBody"></tbody>
@@ -4347,13 +4349,34 @@
 
       allAssemblies = [];
       if (proj.loeData && proj.loeData.length > 0) {
+        let globalParentCount = 0;
+        let globalChildCount = 0;
         proj.loeData.forEach((loeRow, idx) => {
+          let origSr = String(loeRow.srNo || loeRow.autoId || '').trim();
+          let isSec = loeRow.isSection || false;
+          let genSr = origSr;
+          
+          if (!isSec && origSr && !origSr.startsWith('BO')) {
+            if (origSr.includes('.') && !origSr.endsWith('.0')) {
+              if (globalParentCount > 0) {
+                globalChildCount++;
+                genSr = globalParentCount + '.' + globalChildCount;
+              }
+            } else {
+              globalParentCount++;
+              globalChildCount = 0;
+              genSr = String(globalParentCount);
+            }
+          }
+
           allAssemblies.push({
             _id: "ass_" + proj.id + "_" + idx,
             projectNo: proj.projNo || "TBD",
             projId: proj.id,
             loeIdx: idx,
-            srNo: loeRow.srNo || loeRow.autoId,
+            srNo: origSr,
+            generatedSr: genSr,
+            isSection: isSec,
             assemblyName: loeRow.assemblyName,
             drawingDocNo: loeRow.drawingNo,
             dispatchWeek: loeRow.dispatchWeek || '-',
@@ -4457,6 +4480,21 @@
       });
     };
 
+    window.toggleAllAssemblies = function(e, iconEl) {
+      e.stopPropagation();
+      iconEl.classList.toggle('open');
+      const isExpanded = iconEl.classList.contains('open');
+      document.querySelectorAll('#assembliesBody .toggle-chevron').forEach(el => {
+        if (!el.classList.contains('invisible')) {
+          if (isExpanded && !el.classList.contains('open')) {
+            el.click();
+          } else if (!isExpanded && el.classList.contains('open')) {
+            el.click();
+          }
+        }
+      });
+    };
+
     window.toggleFilterOption = function(type) {
       if (type === 'all') {
         let isChecked = $('#filterAllEquipments').is(':checked');
@@ -4471,11 +4509,11 @@
 
     window.isType1Parent = function (a) {
       if (!a || a.isSection) return false;
-      let sr = String(a.srNo || '').trim();
+      let sr = String(a.generatedSr || a.srNo || '').trim();
       if (!sr || sr.startsWith('BO')) return false;
       let base = sr.split('.')[0];
       let list = allAssemblies || [];
-      let children = list.filter(x => !x.isSection && x !== a && String(x.srNo || '').trim().startsWith(base + '.') && !String(x.srNo || '').trim().endsWith('.0'));
+      let children = list.filter(x => !x.isSection && x !== a && String(x.generatedSr || x.srNo || '').trim().startsWith(base + '.') && !String(x.generatedSr || x.srNo || '').trim().endsWith('.0'));
       return children.length > 0 && (sr === base || sr === base + '.0' || sr.endsWith('.0'));
     };
 
@@ -4488,11 +4526,7 @@
         `;
       }
 
-      const drawingCount = (a.drawingFiles || []).length;
-      const subtasksCount = (a.subtasks || []).length;
-      const isReleased = drawingCount > 0;
-
-      const sr = String(a.srNo || "");
+      const sr = String(a.generatedSr || a.srNo || "");
       const rowClasses = (opts.isParent ? "parent-row bg-light" : `child-row child-of-${opts.parentKey}${opts.startOpen ? "" : " d-none"}`) + (opts.isParent ? " sr-whole-row" : "");
 
       const chevron = opts.isParent
@@ -4500,9 +4534,10 @@
         : "";
 
       if (opts.isParent) {
-        let baseKey = sr.split('.')[0];
+        let srStr = String(a.generatedSr || a.srNo || '').trim();
+        let baseKey = srStr.split('.')[0];
         let list = allAssemblies || [];
-        let children = list.filter(x => !x.isSection && String(x.srNo || '').trim().startsWith(baseKey + '.') && !String(x.srNo || '').trim().endsWith('.0'));
+        let children = list.filter(x => !x.isSection && String(x.generatedSr || x.srNo || '').trim().startsWith(baseKey + '.') && !String(x.generatedSr || x.srNo || '').trim().endsWith('.0'));
         let totalChild = children.length;
         let dwgChild = children.filter(c => (c.drawingFiles || []).length > 0).length;
         let bomChild = children.filter(c => (c.subtasks || []).length > 0).length;
@@ -4515,18 +4550,18 @@
 
         return `
           <tr class="${rowClasses}" data-assembly-id="${a._id}">
-            <td class="fw-bold text-center py-2"><div class="d-flex align-items-center justify-content-center">${chevron} <span>${escapeHtml(displaySr)}</span></div></td>
-            <td class="py-2"><strong class="text-dark fs-6">${escapeHtml(a.assemblyName || "")}</strong></td>
-            <td class="py-2"><code class="small fw-bold" style="color: #d63384; font-family: monospace; font-size: 0.85rem;">${escapeHtml(a.drawingDocNo || "-")}</code></td>
-            <td class="text-center fw-bold text-secondary py-2">${escapeHtml(a.qty || "")}</td>
-            <td class="text-center py-2">${getWeekColorBadge(a.releaseWeek)}</td>
-            <td class="text-center py-2">${statusBadge}</td>
-            <td class="py-2">
-              <div class="up-sec up-sec-files p-2 border rounded bg-white shadow-sm">
-                <div class="up-sec-title small fw-bold text-dark mb-1"><i class="fa fa-folder-open text-warning me-1"></i>DRAWINGS &amp; BOM (SUBASSEMBLIES)</div>
-                <div class="d-flex gap-1 flex-wrap">
-                  <span class="badge ${dwgChild === totalChild && totalChild > 0 ? 'bg-success' : 'bg-warning text-dark'} py-1 px-2">${dwgChild}/${totalChild} Drawings Uploaded</span>
-                  <span class="badge ${bomChild === totalChild && totalChild > 0 ? 'bg-success' : 'bg-warning text-dark'} py-1 px-2">${bomChild}/${totalChild} BOM Uploaded</span>
+            <td class="fw-bold text-center py-1"><div class="d-flex align-items-center justify-content-center">${chevron} <span title="Excel Sheet SR: ${escapeHtml(a.srNo || '')}">${escapeHtml(displaySr)}</span></div></td>
+            <td class="py-1"><strong class="text-dark fs-6">${escapeHtml(a.assemblyName || "")}</strong></td>
+            <td class="py-1"><code class="small fw-bold" style="color: #d63384; font-family: monospace; font-size: 0.85rem;">${escapeHtml(a.drawingDocNo || "-")}</code></td>
+            <td class="text-center fw-bold text-secondary py-1">${escapeHtml(a.qty || "")}</td>
+            <td class="text-center py-1">${getWeekColorBadge(a.releaseWeek)}</td>
+            <td class="text-center py-1">${statusBadge}</td>
+            <td class="py-1">
+              <div class="up-sec up-sec-files p-1 px-2 border rounded" style="background-color: #f4f6f9;">
+                <div class="up-sec-title fw-bold mb-1 text-uppercase" style="color: #3b5266; font-size: 0.8rem; letter-spacing: 0.5px;"><i class="fa fa-folder text-secondary me-2"></i>DRAWINGS &amp; BOM</div>
+                <div class="d-flex gap-2 flex-wrap">
+                  <span class="badge ${dwgChild === 0 ? 'bg-transparent border text-secondary' : dwgChild === totalChild ? 'bg-success text-white' : 'bg-warning text-dark'} py-1 px-2 rounded-2 fw-bold" style="font-size: 0.75rem;"><i class="fa fa-drafting-compass me-1 opacity-75"></i>${dwgChild}/${totalChild} Drawings Uploaded</span>
+                  <span class="badge ${bomChild === 0 ? 'bg-transparent border text-secondary' : bomChild === totalChild ? 'bg-success text-white' : 'bg-warning text-dark'} py-1 px-2 rounded-2 fw-bold" style="font-size: 0.75rem;"><i class="fa fa-file-excel me-1 opacity-75"></i>${bomChild}/${totalChild} BOM Uploaded</span>
                 </div>
               </div>
             </td>
@@ -4534,6 +4569,9 @@
         `;
       }
 
+      const drawingCount = (a.drawingFiles || []).length;
+      const subtasksCount = (a.subtasks || []).length;
+      const isReleased = drawingCount > 0;
       let statusBadge = isReleased
         ? `<span class="badge bg-success"><i class="fa fa-check-circle me-1"></i>Released</span>`
         : `<span class="badge bg-light text-muted border">Pending</span>`;
@@ -4542,30 +4580,30 @@
 
       return `
         <tr class="${rowClasses}" data-assembly-id="${a._id}">
-          <td class="text-center text-muted fw-bold py-2">${escapeHtml(sr)}</td>
-          <td class="py-2">
+          <td class="text-center text-muted fw-bold py-1"><span title="Excel Sheet SR: ${escapeHtml(a.srNo || '')}">${escapeHtml(sr)}</span></td>
+          <td class="py-1">
             <div class="fw-bold text-dark">${escapeHtml(a.assemblyName || "")}</div>
             ${sectionSubtext}
           </td>
-          <td class="py-2">
+          <td class="py-1">
             <code class="small fw-bold" style="color: #d63384; font-family: monospace; font-size: 0.85rem;">${escapeHtml(a.drawingDocNo || "-")}</code>
           </td>
-          <td class="text-center fw-bold text-secondary py-2">${escapeHtml(a.qty || "1")}</td>
-          <td class="text-center py-2">${getWeekColorBadge(a.releaseWeek)}</td>
-          <td class="text-center py-2">${statusBadge}</td>
-          <td class="py-2">
-            <div class="d-flex flex-column gap-1">
-              <div class="d-flex align-items-center gap-1">
-                <button type="button" class="btn btn-sm ${drawingCount > 0 ? 'btn-primary' : 'btn-outline-primary'} py-0 px-2 rounded-pill small" onclick="openDrawingsModal('${a._id}')">
+          <td class="text-center fw-bold text-secondary py-1">${escapeHtml(a.qty || "1")}</td>
+          <td class="text-center py-1">${getWeekColorBadge(a.releaseWeek)}</td>
+          <td class="text-center py-1">${statusBadge}</td>
+          <td class="py-1">
+            <div class="p-1 border rounded bg-white" style="display: inline-block; min-width: 280px;">
+              <div class="d-flex gap-1 mb-1">
+                <button type="button" class="btn btn-sm ${drawingCount > 0 ? 'btn-primary text-white' : 'btn-outline-primary'} flex-grow-1" style="font-size: 0.75rem;" onclick="openDrawingsModal('${a._id}')">
                   <i class="fa fa-eye me-1"></i>Drawings (${drawingCount})
                 </button>
-                <button type="button" class="btn btn-sm ${subtasksCount > 0 ? 'btn-success' : 'btn-outline-success'} py-0 px-2 rounded-pill small" onclick="openSubtasksModal('${a.projId}', ${a.loeIdx})">
+                <button type="button" class="btn btn-sm ${subtasksCount > 0 ? 'btn-success text-white' : 'btn-outline-success'} flex-grow-1" style="font-size: 0.75rem;" onclick="openSubtasksModal('${a.projId}', ${a.loeIdx})">
                   <i class="fa fa-eye me-1"></i>BOM (${subtasksCount})
                 </button>
               </div>
-              <div class="d-flex align-items-center gap-1 mt-1">
-                <input type="file" multiple accept=".pdf,.xlsx,.xls,.csv" class="form-control form-control-sm" id="drawingInput_${a._id}" style="font-size: 0.8rem;">
-                <button type="button" class="btn btn-sm btn-primary fw-bold text-nowrap" onclick="uploadAssemblyDrawing('${a.projId}', ${a.loeIdx}, '${a._id}')">
+              <div class="input-group input-group-sm">
+                <input type="file" multiple accept=".pdf,.xlsx,.xls,.csv" class="form-control" id="drawingInput_${a._id}" style="font-size: 0.75rem;">
+                <button type="button" class="btn fw-bold text-white px-3" style="background-color: #3b5266; font-size: 0.8rem;" onclick="uploadAssemblyDrawing('${a.projId}', ${a.loeIdx}, '${a._id}')">
                   <i class="fa fa-upload me-1"></i>Upload
                 </button>
               </div>
@@ -4598,22 +4636,22 @@
       const colStat = ($('#colSearchStatus').val() || '').trim().toLowerCase();
 
       const fDrawUp = $('#filterDrawingsUploaded').is(':checked');
-      const fDrawNo = $('#filterDrawingsNotUploaded').is(':checked');
+      const fDrawNotUp = $('#filterDrawingsNotUploaded').is(':checked');
       const fBomUp = $('#filterBOMUploaded').is(':checked');
-      const fBomNo = $('#filterBOMNotUploaded').is(':checked');
+      const fBomNotUp = $('#filterBOMNotUploaded').is(':checked');
 
-      let filtered = allAssemblies.filter((a) => {
+      let filtered = allAssemblies.filter(a => {
         if (a.isSection) return true;
 
         const isDwgUp = (a.drawingFiles || []).length > 0;
         const isBomUp = (a.subtasks || []).length > 0;
 
         if (fDrawUp && !isDwgUp) return false;
-        if (fDrawNo && isDwgUp) return false;
+        if (fDrawNotUp && isDwgUp) return false;
         if (fBomUp && !isBomUp) return false;
-        if (fBomNo && isBomUp) return false;
+        if (fBomNotUp && isBomUp) return false;
 
-        if (colSr && !String(a.srNo || '').toLowerCase().includes(colSr)) return false;
+        if (colSr && !String(a.generatedSr || a.srNo || '').toLowerCase().includes(colSr)) return false;
         if (colAsm && !String(a.assemblyName || '').toLowerCase().includes(colAsm)) return false;
         if (colDoc && !String(a.drawingDocNo || '').toLowerCase().includes(colDoc)) return false;
         if (colRel && !String(a.releaseWeek || '').toLowerCase().includes(colRel)) return false;
@@ -4623,7 +4661,7 @@
         }
 
         if (!filter) return true;
-        const hay = [a.projectNo, a.assemblyName, a.drawingDocNo, a.srNo, a.section].map(v => String(v || "").toLowerCase()).join(" ");
+        const hay = [a.projectNo, a.assemblyName, a.drawingDocNo, a.generatedSr, a.srNo, a.section].map(v => String(v || "").toLowerCase()).join(" ");
         return hay.includes(filter);
       });
 
@@ -4672,13 +4710,13 @@
           html += `<tr class="section-divider"><td colspan="7">${escapeHtml(a.assemblyName)}</td></tr>`;
           sIdx++;
         } else {
-          let sr = String(a.srNo || '').trim();
+          let sr = String(a.generatedSr || a.srNo || '').trim();
           let baseKey = sr.split('.')[0];
           let kSafe = `s${sIdx}_${baseKey}`;
 
           let isParent = isType1Parent(a);
           let list = allAssemblies || [];
-          let children = list.filter(x => !x.isSection && x !== a && String(x.srNo || '').trim().startsWith(baseKey + '.') && !String(x.srNo || '').trim().endsWith('.0'));
+          let children = list.filter(x => !x.isSection && x !== a && String(x.generatedSr || x.srNo || '').trim().startsWith(baseKey + '.') && !String(x.generatedSr || x.srNo || '').trim().endsWith('.0'));
 
           html += rowHtml(a, {
             isParent: isParent,
