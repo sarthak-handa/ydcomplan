@@ -4474,7 +4474,7 @@
       let sr = String(a.srNo || '').trim();
       if (!sr || sr.startsWith('BO')) return false;
       let base = sr.split('.')[0];
-      let list = window.allAssemblies || [];
+      let list = allAssemblies || [];
       let children = list.filter(x => !x.isSection && x !== a && String(x.srNo || '').trim().startsWith(base + '.') && !String(x.srNo || '').trim().endsWith('.0'));
       return children.length > 0 && (sr === base || sr === base + '.0' || sr.endsWith('.0'));
     };
@@ -4496,29 +4496,34 @@
       const rowClasses = (opts.isParent ? "parent-row bg-light" : `child-row child-of-${opts.parentKey}${opts.startOpen ? "" : " d-none"}`) + (opts.isParent ? " sr-whole-row" : "");
 
       const chevron = opts.isParent
-        ? (opts.hasChildren ? `<span class="toggle-chevron${opts.startOpen ? " open" : ""} me-2 text-dark cursor-pointer" onclick="toggleChildren('${opts.parentKey}', this)"><i class="fa fa-chevron-down"></i></span>` : `<span class="toggle-chevron invisible me-2"><i class="fa fa-chevron-down"></i></span>`)
+        ? (opts.hasChildren ? `<span class="toggle-chevron${opts.startOpen ? " open" : ""} me-2 text-dark cursor-pointer" onclick="toggleChildren('${opts.parentKey}', this)"><i class="fa fa-chevron-right"></i></span>` : `<span class="toggle-chevron invisible me-2"><i class="fa fa-chevron-right"></i></span>`)
         : "";
 
       if (opts.isParent) {
         let baseKey = sr.split('.')[0];
-        let list = window.allAssemblies || [];
+        let list = allAssemblies || [];
         let children = list.filter(x => !x.isSection && String(x.srNo || '').trim().startsWith(baseKey + '.') && !String(x.srNo || '').trim().endsWith('.0'));
         let totalChild = children.length;
         let dwgChild = children.filter(c => (c.drawingFiles || []).length > 0).length;
         let bomChild = children.filter(c => (c.subtasks || []).length > 0).length;
 
+        let displaySr = String(sr || '').endsWith('.0') && /^\d+\.0$/.test(String(sr || '')) ? String(sr).slice(0, -2) : sr;
+
         let statusBadge = (dwgChild === totalChild && totalChild > 0)
-          ? `<span class="badge bg-success"><i class="fa fa-check-circle me-1"></i>Released</span>`
+          ? `<span class="badge bg-success"><i class="fa fa-circle-check me-1"></i>Released</span>`
           : `<span class="badge bg-secondary opacity-75">Pending</span>`;
 
         return `
           <tr class="${rowClasses}" data-assembly-id="${a._id}">
-            <td class="fw-bold text-center py-2"><div class="d-flex align-items-center justify-content-center">${chevron} <span>${escapeHtml(sr)}</span></div></td>
-            <td colspan="4" class="py-2"><strong class="text-dark fs-6">${escapeHtml(a.assemblyName || "")}</strong></td>
+            <td class="fw-bold text-center py-2"><div class="d-flex align-items-center justify-content-center">${chevron} <span>${escapeHtml(displaySr)}</span></div></td>
+            <td class="py-2"><strong class="text-dark fs-6">${escapeHtml(a.assemblyName || "")}</strong></td>
+            <td class="py-2"><code class="small fw-bold" style="color: #d63384; font-family: monospace; font-size: 0.85rem;">${escapeHtml(a.drawingDocNo || "-")}</code></td>
+            <td class="text-center fw-bold text-secondary py-2">${escapeHtml(a.qty || "")}</td>
+            <td class="text-center py-2">${getWeekColorBadge(a.releaseWeek)}</td>
             <td class="text-center py-2">${statusBadge}</td>
             <td class="py-2">
-              <div class="p-2 border rounded bg-white shadow-sm d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <span class="small fw-bold text-dark"><i class="fa fa-folder-open text-warning me-1"></i>DRAWINGS &amp; BOM</span>
+              <div class="up-sec up-sec-files p-2 border rounded bg-white shadow-sm">
+                <div class="up-sec-title small fw-bold text-dark mb-1"><i class="fa fa-folder-open text-warning me-1"></i>DRAWINGS &amp; BOM (SUBASSEMBLIES)</div>
                 <div class="d-flex gap-1 flex-wrap">
                   <span class="badge ${dwgChild === totalChild && totalChild > 0 ? 'bg-success' : 'bg-warning text-dark'} py-1 px-2">${dwgChild}/${totalChild} Drawings Uploaded</span>
                   <span class="badge ${bomChild === totalChild && totalChild > 0 ? 'bg-success' : 'bg-warning text-dark'} py-1 px-2">${bomChild}/${totalChild} BOM Uploaded</span>
@@ -4672,7 +4677,7 @@
           let kSafe = `s${sIdx}_${baseKey}`;
 
           let isParent = isType1Parent(a);
-          let list = window.allAssemblies || [];
+          let list = allAssemblies || [];
           let children = list.filter(x => !x.isSection && x !== a && String(x.srNo || '').trim().startsWith(baseKey + '.') && !String(x.srNo || '').trim().endsWith('.0'));
 
           html += rowHtml(a, {
