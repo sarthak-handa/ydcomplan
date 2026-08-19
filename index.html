@@ -1156,6 +1156,9 @@
                 <div class="meta" id="projectMeta">Loading project</div>
               </div>
               <div class="d-flex gap-2 align-items-center">
+                <button type="button" class="btn btn-primary btn-sm fw-bold" onclick="let currentProjId = $('#drawingsProjectSelector').val(); if(currentProjId) openExcelViewer(currentProjId);" title="Edit LOE values in interactive sheet editor">
+                  <i class="fa fa-pen-to-square me-1"></i>Edit LOE
+                </button>
                 <button class="btn btn-success btn-sm fw-bold" onclick="document.getElementById('globalBOMUploadInput').click()">
                   <i class="fa fa-file-excel me-1"></i> Upload BOMs
                 </button>
@@ -1165,44 +1168,80 @@
                 </button>
               </div>
             </div>
-            <div class="stats-strip" id="statsStrip">
+            <div class="stats-strip bg-light border rounded p-3 mb-3 d-flex align-items-center gap-4 shadow-sm" id="statsStrip">
               <div class="stat">
-                <span class="label">Total Assemblies</span>
-                <span class="value" id="statTotal">0</span>
+                <span class="label text-muted small fw-bold d-block text-uppercase">Total Assemblies</span>
+                <span class="value fs-4 fw-bold text-dark" id="statTotal">0</span>
               </div>
               <div class="stat">
-                <span class="label">Released</span>
-                <span class="value text-success" id="statReleased">0</span>
+                <span class="label text-muted small fw-bold d-block text-uppercase">Released</span>
+                <span class="value fs-4 fw-bold text-success" id="statReleased">0</span>
               </div>
               <div class="stat">
-                <span class="label">Pending</span>
-                <span class="value text-warning" id="statPending">0</span>
+                <span class="label text-muted small fw-bold d-block text-uppercase">Pending</span>
+                <span class="value fs-4 fw-bold text-warning" id="statPending">0</span>
               </div>
             </div>
 
-            <div class="filter-row">
-              <input type="text" class="form-control form-control-sm" id="filterText"
-                placeholder="Filter assemblies by name, doc no, section" />
-              <div class="form-check form-check-inline mb-0">
-                <input class="form-check-input" type="checkbox" id="filterPendingOnly" />
-                <label class="form-check-label small" for="filterPendingOnly">
-                  Show only pending (not released)
-                </label>
+            <!-- Filter Row with Search & Filters Dropdown -->
+            <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+              <div class="flex-grow-1" style="max-width: 380px;">
+                <input type="text" class="form-control form-control-sm" id="filterText" placeholder="Filter assemblies by name, doc no, section" />
+              </div>
+              
+              <!-- Filters Dropdown Button -->
+              <div class="dropdown">
+                <button class="btn btn-secondary btn-sm dropdown-toggle fw-bold" type="button" id="dropdownFiltersMenu" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                  <i class="fa fa-filter me-1"></i> Filters
+                </button>
+                <div class="dropdown-menu p-3 shadow" style="min-width: 230px;" aria-labelledby="dropdownFiltersMenu">
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="filterAllEquipments" checked onchange="toggleFilterOption('all')">
+                    <label class="form-check-label small fw-bold" for="filterAllEquipments">All Equipments</label>
+                  </div>
+                  <hr class="dropdown-divider my-2">
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="filterDrawingsUploaded" onchange="toggleFilterOption('drawingsUploaded')">
+                    <label class="form-check-label small" for="filterDrawingsUploaded">Drawings Uploaded</label>
+                  </div>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="filterDrawingsNotUploaded" onchange="toggleFilterOption('drawingsNotUploaded')">
+                    <label class="form-check-label small" for="filterDrawingsNotUploaded">Drawings Not Uploaded</label>
+                  </div>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="filterBOMUploaded" onchange="toggleFilterOption('bomUploaded')">
+                    <label class="form-check-label small" for="filterBOMUploaded">BOM Uploaded</label>
+                  </div>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="filterBOMNotUploaded" onchange="toggleFilterOption('bomNotUploaded')">
+                    <label class="form-check-label small" for="filterBOMNotUploaded">BOM Not Uploaded</label>
+                  </div>
+                </div>
               </div>
             </div>
 
             <div id="tableWrap" class="table-wrap">
               <div class="table-responsive">
-                <table class="table table-bordered table-hover assemblies mb-0" id="assembliesTable">
-                  <thead>
+                <table class="table table-bordered table-hover assemblies mb-0 align-middle" id="assembliesTable" style="font-size: 0.88rem;">
+                  <thead class="table-dark sticky-top shadow-sm">
                     <tr id="assembliesHeaderRow">
-                      <th class="sortable" data-sort-key="srNo" onclick="toggleAssembliesSort('srNo')" style="width: 60px; cursor: pointer;">SR <i class="fa fa-sort text-muted opacity-50 ms-1" style="font-size: 0.75rem;"></i></th>
-                      <th class="sortable" data-sort-key="assemblyName" onclick="toggleAssembliesSort('assemblyName')" style="cursor: pointer;">Assembly <i class="fa fa-sort text-muted opacity-50 ms-1" style="font-size: 0.75rem;"></i></th>
-                      <th class="sortable" data-sort-key="drawingDocNo" onclick="toggleAssembliesSort('drawingDocNo')" style="cursor: pointer;">Doc No <i class="fa fa-sort text-muted opacity-50 ms-1" style="font-size: 0.75rem;"></i></th>
-                      <th class="sortable" data-sort-key="releaseWeek" onclick="toggleAssembliesSort('releaseWeek')" style="cursor: pointer;">Release Wk <i class="fa fa-sort text-muted opacity-50 ms-1" style="font-size: 0.75rem;"></i></th>
-                      <th style="width: 140px">Subtasks</th>
-                      <th class="sortable" data-sort-key="drawingCount" onclick="toggleAssembliesSort('drawingCount')" style="cursor: pointer;">Drawings <i class="fa fa-sort text-muted opacity-50 ms-1" style="font-size: 0.75rem;"></i></th>
-                      <th class="upload-cell">Upload BOM (xl) and Drawing</th>
+                      <th class="sortable" data-sort-key="srNo" onclick="toggleAssembliesSort('srNo')" style="width: 70px; cursor: pointer;">SR <i class="fa fa-sort opacity-50 ms-1" style="font-size: 0.75rem;"></i></th>
+                      <th class="sortable" data-sort-key="assemblyName" onclick="toggleAssembliesSort('assemblyName')" style="cursor: pointer;">ASSEMBLY <i class="fa fa-sort opacity-50 ms-1" style="font-size: 0.75rem;"></i></th>
+                      <th class="sortable" data-sort-key="drawingDocNo" onclick="toggleAssembliesSort('drawingDocNo')" style="width: 180px; cursor: pointer;">DRAWING / DOC NO <i class="fa fa-sort opacity-50 ms-1" style="font-size: 0.75rem;"></i></th>
+                      <th style="width: 60px" class="text-center">QTY</th>
+                      <th class="sortable text-center" data-sort-key="releaseWeek" onclick="toggleAssembliesSort('releaseWeek')" style="width: 110px; cursor: pointer;">RELEASE WEEK <i class="fa fa-sort opacity-50 ms-1" style="font-size: 0.75rem;"></i></th>
+                      <th class="sortable text-center" data-sort-key="status" onclick="toggleAssembliesSort('status')" style="width: 100px; cursor: pointer;">STATUS <i class="fa fa-sort opacity-50 ms-1" style="font-size: 0.75rem;"></i></th>
+                      <th style="width: 360px;">DRAWINGS AND BOM UPLOAD</th>
+                    </tr>
+                    <!-- Sub-Search Row -->
+                    <tr class="table-light py-1" id="assembliesSearchRow">
+                      <td class="p-1"><input type="text" id="colSearchSr" class="form-control form-control-sm text-center py-0 px-1" placeholder="SR" onkeyup="renderAssemblies()" /></td>
+                      <td class="p-1"><input type="text" id="colSearchAssembly" class="form-control form-control-sm py-0 px-1" placeholder="Assembly" onkeyup="renderAssemblies()" /></td>
+                      <td class="p-1"><input type="text" id="colSearchDocNo" class="form-control form-control-sm py-0 px-1" placeholder="Doc No" onkeyup="renderAssemblies()" /></td>
+                      <td class="p-1"></td>
+                      <td class="p-1"><input type="text" id="colSearchReleaseWeek" class="form-control form-control-sm text-center py-0 px-1" placeholder="Release Wk" onkeyup="renderAssemblies()" /></td>
+                      <td class="p-1"><input type="text" id="colSearchStatus" class="form-control form-control-sm text-center py-0 px-1" placeholder="Status" onkeyup="renderAssemblies()" /></td>
+                      <td class="p-1"></td>
                     </tr>
                   </thead>
                   <tbody id="assembliesBody"></tbody>
@@ -2870,22 +2909,25 @@
               continue;
             }
 
-            if (mode === 'BO' && i <= boHeaderIdx + 1) {
-              var boHdr = row.map(c => String(c).toUpperCase());
-              boHdr.forEach(function (cVal, cIdx) {
-                if (cVal.includes('SR')) boSrCol = cIdx;
-                else if (cVal.includes('SECTION') || cVal.includes('EQUIPMENT')) boSecCol = cIdx;
-                else if (cVal.includes('TITLE') || cVal.includes('DESCRIPTION') || cVal.includes('NAME')) boTitleCol = cIdx;
-                else if (cVal.includes('DOCUMENT') || cVal.includes('DRAWING') || cVal.includes('DOC NO')) boDocCol = cIdx;
-                else if (cVal.includes('QTY')) boQtyCol = cIdx;
-                else if (cVal.includes('REV') && !cVal.includes('BOM')) boDocRevCol = cIdx;
-                else if (cVal.includes('BOM REV')) boBomRevCol = cIdx;
-                else if (cVal.includes('PLAN')) boPlanDateCol = cIdx;
-                else if (cVal.includes('ISSUE') || cVal.includes('ACTUAL')) boIssueDateCol = cIdx;
-                else if (cVal.includes('STATUS')) boStatusCol = cIdx;
-                else if (cVal.includes('REMARK')) boRemarkCol = cIdx;
-              });
-              continue;
+            if (mode === 'BO') {
+              var isBoHeaderRow = rowStr.includes('TITLE') || rowStr.includes('DOCUMENT NO') || rowStr.includes('DOC NO') || rowStr.includes('BOM REV');
+              if (isBoHeaderRow) {
+                var boHdr = row.map(c => String(c).toUpperCase());
+                boHdr.forEach(function (cVal, cIdx) {
+                  if (cVal.includes('SR')) boSrCol = cIdx;
+                  else if (cVal.includes('SECTION') || cVal.includes('EQUIPMENT')) boSecCol = cIdx;
+                  else if (cVal.includes('TITLE') || cVal.includes('DESCRIPTION') || cVal.includes('NAME')) boTitleCol = cIdx;
+                  else if (cVal.includes('DOCUMENT') || cVal.includes('DRAWING') || cVal.includes('DOC NO')) boDocCol = cIdx;
+                  else if (cVal.includes('QTY')) boQtyCol = cIdx;
+                  else if (cVal.includes('REV') && !cVal.includes('BOM')) boDocRevCol = cIdx;
+                  else if (cVal.includes('BOM REV')) boBomRevCol = cIdx;
+                  else if (cVal.includes('PLAN')) boPlanDateCol = cIdx;
+                  else if (cVal.includes('ISSUE') || cVal.includes('ACTUAL')) boIssueDateCol = cIdx;
+                  else if (cVal.includes('STATUS')) boStatusCol = cIdx;
+                  else if (cVal.includes('REMARK')) boRemarkCol = cIdx;
+                });
+                continue;
+              }
             }
 
             if (mode === 'MAIN') {
@@ -3234,7 +3276,7 @@
           else if (p.stage === 9) actionBtn = `<button class="btn btn-sm btn-danger fw-bold text-white btn-dir-approve" data-id="${p.id}"><i class="fa fa-check-double me-1"></i>Dir Appr</button>`;
           else if (p.stage === 10) actionBtn = `<button class="btn btn-sm btn-success fw-bold text-white" data-id="${p.id}" onclick="showDrawingsView('${p.id}')"><i class="fa fa-drafting-compass me-1"></i>Drawings</button>`;
 
-          // YDComplan pill button — additive, appears for stage >= 7 (LOE uploaded)
+          let drawingsBtn = (p.stage >= 8 && p.stage < 10) ? `<button class="btn btn-sm btn-success fw-bold text-white ms-1" data-id="${p.id}" onclick="event.stopPropagation();showDrawingsView('${p.id}')" title="Open Drawings Page"><i class="fa fa-drafting-compass me-1"></i>Drawings</button>` : '';
           let ydcBtn = (p.stage >= 7) ? `<button class="btn btn-sm btn-outline-success fw-bold act-mini ms-1" data-id="${p.id}" onclick="event.stopPropagation();showYDComplanView(${p.id})" title="Open in YDComplan Execution"><i class="fa fa-cogs me-1"></i>YDComplan</button>` : '';
           let deleteBtn = `<button class="btn btn-sm btn-danger btn-delete-proj ms-1" data-id="${p.id}" title="Delete Project"><i class="fa fa-trash"></i></button>`;
 
@@ -3247,7 +3289,7 @@
               <td><span class="badge status-badge ${stageConfig.cls}">${stageConfig.label}</span></td>
               <td><div class="fw-bold small">${p.owner}</div></td>
               <td><div class="${p.pm === 'Pending' ? 'text-muted fst-italic' : 'fw-bold'}">${p.pm}</div></td>
-              <td><div class="action-cell d-flex align-items-center flex-nowrap">${actionBtn}${ydcBtn}${deleteBtn}</div></td>
+              <td><div class="action-cell d-flex align-items-center flex-nowrap">${actionBtn}${drawingsBtn}${ydcBtn}${deleteBtn}</div></td>
             </tr>
           `;
           dt.row.add($(rowHtml));
@@ -3316,12 +3358,18 @@
           </div>
         `);
 
-        if (proj.loeUrl || proj.hasLoe) {
+        if (proj.stage >= 7 || proj.loeUrl || proj.hasLoe) {
           if (proj.loeData && proj.loeData.length > 0) {
-            $('#detFilesList').append(`<button onclick="openExcelViewer(${proj.id})" class="btn btn-success btn-sm p-2 mb-1 text-white border-0"><i class="fa fa-file-excel me-1"></i> View LOE Document</button>&nbsp;`);
+            $('#detFilesList').append(`<button onclick="openExcelViewer(${proj.id})" class="btn btn-success btn-sm p-2 mb-1 text-white border-0"><i class="fa fa-file-excel me-1"></i> View LOE</button>&nbsp;`);
+            $('#detFilesList').append(`<button onclick="openScheduleModal(${proj.id})" class="btn btn-warning btn-sm p-2 mb-1 text-dark fw-bold border-0"><i class="fa fa-calendar me-1"></i> View Planning Sheet</button>&nbsp;`);
           } else {
             $('#detFilesList').append(`<button onclick="openProjectFileFromId(${proj.id}, 'loeUrl')" class="btn btn-secondary btn-sm p-2 mb-1"><i class="fa fa-file-excel me-1"></i> Download LOE Document</button>&nbsp;`);
           }
+        }
+
+        if (proj.stage >= 8) {
+          $('#detFilesList').append(`<button onclick="openDatesModal(${proj.id})" class="btn btn-info btn-sm p-2 mb-1 text-dark fw-bold border-0"><i class="fa fa-calendar-check me-1"></i> View Release Week Sheet</button>&nbsp;`);
+          $('#detFilesList').append(`<button onclick="showDrawingsView('${proj.id}')" class="btn btn-success btn-sm p-2 mb-1 text-white fw-bold border-0"><i class="fa fa-drafting-compass me-1"></i> Drawings</button>&nbsp;`);
         }
 
         let tl = proj.timeline || {};
@@ -4131,7 +4179,7 @@
       $('#drawingsView').fadeIn();
 
       let pData = window.projectsData || (typeof projectsData !== 'undefined' ? projectsData : []);
-      let activeProjects = pData.filter(p => p.stage >= 10);
+      let activeProjects = pData.filter(p => p.stage >= 8);
 
       // Populate project selector dropdown
       let selectorHtml = '';
@@ -4150,7 +4198,7 @@
         $('#drawingsProjectSelector').val(targetProjId);
         openProjectDrawings(targetProjId);
       } else {
-        $('#projectMeta').html('<span class="text-danger">No active projects found at Drawing Stage</span>');
+        $('#projectMeta').html('<span class="text-danger">No active projects found at Drawing Release Stage</span>');
         allAssemblies = [];
         renderAssemblies();
       }
@@ -4170,7 +4218,7 @@
       $('#drawingsAssembliesDetail').show();
 
       let pData = window.projectsData || (typeof projectsData !== 'undefined' ? projectsData : []);
-      let activeProjects = pData.filter(p => p.stage >= 10);
+      let activeProjects = pData.filter(p => p.stage >= 8);
       let proj = activeProjects.find(p => p.id == projId);
       if (!proj) return;
 
@@ -4214,11 +4262,11 @@
 
     window.loadProjectsData = function () {
       let pData = window.projectsData || (typeof projectsData !== 'undefined' ? projectsData : []);
-      let activeProjects = pData.filter(p => p.stage >= 10);
+      let activeProjects = pData.filter(p => p.stage >= 8);
 
       let gridHtml = '';
       if (activeProjects.length === 0) {
-        gridHtml = `<div class="col-12"><div class="alert alert-info"><i class="fa fa-info-circle me-2"></i>No active projects at Director Approved stage.</div></div>`;
+        gridHtml = `<div class="col-12"><div class="alert alert-info"><i class="fa fa-info-circle me-2"></i>No active projects at Drawing Release stage.</div></div>`;
       } else {
         activeProjects.forEach(proj => {
           let totalAssy = proj.loeData ? proj.loeData.length : 0;
@@ -4294,56 +4342,106 @@
       });
     };
 
+    window.toggleFilterOption = function(type) {
+      if (type === 'all') {
+        let isChecked = $('#filterAllEquipments').is(':checked');
+        if (isChecked) {
+          $('#filterDrawingsUploaded, #filterDrawingsNotUploaded, #filterBOMUploaded, #filterBOMNotUploaded').prop('checked', false);
+        }
+      } else {
+        $('#filterAllEquipments').prop('checked', false);
+      }
+      renderAssemblies();
+    };
+
     window.rowHtml = function (a, opts) {
       if (a.isSection) {
         return `
-              <tr class="section-divider">
-                <td colspan="7">${escapeHtml(a.assemblyName)}</td>
-              </tr>
-            `;
+          <tr class="section-divider">
+            <td colspan="7" class="bg-dark text-white fw-bold py-2 px-3">${escapeHtml(a.assemblyName)}</td>
+          </tr>
+        `;
       }
 
       const drawingCount = (a.drawingFiles || []).length;
+      const subtasksCount = (a.subtasks || []).length;
       const isReleased = drawingCount > 0;
 
-      const subtasksCount = (a.subtasks || []).length;
-      const subtasksBtn = `<button class="btn btn-sm btn-outline-primary fw-bold" onclick="openSubtasksModal('${a.projId}', ${a.loeIdx})"><i class="fa fa-list me-1"></i>${subtasksCount} Components</button>`;
-
-      const viewBtnHtml = drawingCount
-        ? `<button type="button" class="btn btn-sm btn-success fw-bold" onclick="openDrawingsModal('${a._id}')"><i class="fa fa-eye me-1"></i>View (${drawingCount})</button>`
-        : `<span class="text-muted small fst-italic">No files</span>`;
-
-      const rowClasses = (opts.isParent ? "parent-row" : `child-row child-of-${opts.parentKey}${opts.startOpen ? "" : " d-none"}`) + (opts.isParent ? " sr-whole-row" : "");
-      const isChild = (a.srNo && String(a.srNo).includes('.'));
-      const srStyle = isChild ? 'color: #6f42c1; font-weight: 500;' : 'color: #d9534f; font-weight: 500;';
+      const sr = String(a.srNo || "");
+      const isChild = sr.includes('.');
+      const rowClasses = (opts.isParent ? "parent-row bg-light" : `child-row child-of-${opts.parentKey}${opts.startOpen ? "" : " d-none"}`) + (opts.isParent ? " sr-whole-row" : "");
 
       const chevron = opts.isParent
-        ? (opts.hasChildren ? `<span class="toggle-chevron${opts.startOpen ? " open" : ""} me-2 text-dark" onclick="toggleChildren('${opts.parentKey}', this)"><i class="fa fa-chevron-right"></i></span>` : `<span class="toggle-chevron invisible me-2"><i class="fa fa-chevron-right"></i></span>`)
+        ? (opts.hasChildren ? `<span class="toggle-chevron${opts.startOpen ? " open" : ""} me-2 text-dark cursor-pointer" onclick="toggleChildren('${opts.parentKey}', this)"><i class="fa fa-chevron-down"></i></span>` : `<span class="toggle-chevron invisible me-2"><i class="fa fa-chevron-down"></i></span>`)
         : "";
 
-      const assemblyIcon = isChild
-        ? `<i class="fa fa-clipboard-check text-primary opacity-75 me-2 ms-4"></i>`
-        : chevron;
+      if (opts.isParent) {
+        let children = allAssemblies.filter(x => !x.isSection && String(x.srNo).startsWith(sr + "."));
+        let totalChild = children.length;
+        let dwgChild = children.filter(c => (c.drawingFiles || []).length > 0).length;
+        let bomChild = children.filter(c => (c.subtasks || []).length > 0).length;
 
-      const assemblyClass = isChild ? 'text-secondary fw-normal' : 'text-dark fw-normal';
+        let statusBadge = (dwgChild === totalChild && totalChild > 0)
+          ? `<span class="badge bg-success"><i class="fa fa-check-circle me-1"></i>Released</span>`
+          : `<span class="badge bg-secondary opacity-75">Pending</span>`;
 
-      return `
+        return `
           <tr class="${rowClasses}" data-assembly-id="${a._id}">
-            <td><span style="${srStyle}">${escapeHtml(a.srNo || "")}</span></td>
-            <td><div class="${assemblyClass} d-flex align-items-center">${assemblyIcon}${escapeHtml(a.assemblyName || "")}</div></td>
-            <td><code class="small fw-bold text-danger">${escapeHtml(a.drawingDocNo || "")}</code></td>
-            <td>${getWeekColorBadge(a.releaseWeek)}</td>
-            <td>${subtasksBtn}</td>
-            <td>${viewBtnHtml}</td>
-            <td class="upload-cell">
-              <div class="d-flex align-items-center gap-2">
-                <input type="file" multiple accept=".pdf,.xlsx,.xls,.csv" class="form-control form-control-sm w-75" id="drawingInput_${a._id}">
-                <button type="button" class="btn btn-sm btn-primary w-25" onclick="uploadAssemblyDrawing('${a.projId}', ${a.loeIdx}, '${a._id}')" title="Upload">
-                  <i class="fa fa-upload"></i>
-                </button>
+            <td class="fw-bold text-center py-2"><div class="d-flex align-items-center justify-content-center">${chevron} <span>${escapeHtml(sr)}</span></div></td>
+            <td colspan="4" class="py-2"><strong class="text-dark fs-6">${escapeHtml(a.assemblyName || "")}</strong></td>
+            <td class="text-center py-2">${statusBadge}</td>
+            <td class="py-2">
+              <div class="p-2 border rounded bg-white shadow-sm d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <span class="small fw-bold text-dark"><i class="fa fa-folder-open text-warning me-1"></i>DRAWINGS &amp; BOM</span>
+                <div class="d-flex gap-1 flex-wrap">
+                  <span class="badge ${dwgChild === totalChild && totalChild > 0 ? 'bg-success' : 'bg-warning text-dark'} py-1 px-2">${dwgChild}/${totalChild} Drawings Uploaded</span>
+                  <span class="badge ${bomChild === totalChild && totalChild > 0 ? 'bg-success' : 'bg-warning text-dark'} py-1 px-2">${bomChild}/${totalChild} BOM Uploaded</span>
+                </div>
               </div>
             </td>
-          </tr>`;
+          </tr>
+        `;
+      }
+
+      let statusBadge = isReleased
+        ? `<span class="badge bg-success"><i class="fa fa-check-circle me-1"></i>Released</span>`
+        : `<span class="badge bg-light text-muted border">Pending</span>`;
+
+      let sectionSubtext = a.section ? `<div class="small text-muted text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">${escapeHtml(a.section)}</div>` : '';
+
+      return `
+        <tr class="${rowClasses}" data-assembly-id="${a._id}">
+          <td class="text-center text-muted fw-bold py-2">${escapeHtml(sr)}</td>
+          <td class="py-2">
+            <div class="fw-bold text-dark">${escapeHtml(a.assemblyName || "")}</div>
+            ${sectionSubtext}
+          </td>
+          <td class="py-2">
+            <code class="small fw-bold" style="color: #d63384; font-family: monospace; font-size: 0.85rem;">${escapeHtml(a.drawingDocNo || "-")}</code>
+          </td>
+          <td class="text-center fw-bold text-secondary py-2">${escapeHtml(a.qty || "1")}</td>
+          <td class="text-center py-2">${getWeekColorBadge(a.releaseWeek)}</td>
+          <td class="text-center py-2">${statusBadge}</td>
+          <td class="py-2">
+            <div class="d-flex flex-column gap-1">
+              <div class="d-flex align-items-center gap-1">
+                <button type="button" class="btn btn-sm ${drawingCount > 0 ? 'btn-primary' : 'btn-outline-primary'} py-0 px-2 rounded-pill small" onclick="openDrawingsModal('${a._id}')">
+                  <i class="fa fa-eye me-1"></i>Drawings (${drawingCount})
+                </button>
+                <button type="button" class="btn btn-sm ${subtasksCount > 0 ? 'btn-success' : 'btn-outline-success'} py-0 px-2 rounded-pill small" onclick="openSubtasksModal('${a.projId}', ${a.loeIdx})">
+                  <i class="fa fa-eye me-1"></i>BOM (${subtasksCount})
+                </button>
+              </div>
+              <div class="d-flex align-items-center gap-1 mt-1">
+                <input type="file" multiple accept=".pdf,.xlsx,.xls,.csv" class="form-control form-control-sm" id="drawingInput_${a._id}" style="font-size: 0.8rem;">
+                <button type="button" class="btn btn-sm btn-primary fw-bold text-nowrap" onclick="uploadAssemblyDrawing('${a.projId}', ${a.loeIdx}, '${a._id}')">
+                  <i class="fa fa-upload me-1"></i>Upload
+                </button>
+              </div>
+            </div>
+          </td>
+        </tr>
+      `;
     };
 
     let assembliesSortKey = null;
@@ -4360,20 +4458,45 @@
     };
 
     window.renderAssemblies = function () {
-      const filter = (document.getElementById("filterText").value || "").trim().toLowerCase();
-      const pendingOnly = document.getElementById("filterPendingOnly").checked;
+      const filter = (document.getElementById("filterText")?.value || "").trim().toLowerCase();
+
+      const colSr = ($('#colSearchSr').val() || '').trim().toLowerCase();
+      const colAsm = ($('#colSearchAssembly').val() || '').trim().toLowerCase();
+      const colDoc = ($('#colSearchDocNo').val() || '').trim().toLowerCase();
+      const colRel = ($('#colSearchReleaseWeek').val() || '').trim().toLowerCase();
+      const colStat = ($('#colSearchStatus').val() || '').trim().toLowerCase();
+
+      const fDrawUp = $('#filterDrawingsUploaded').is(':checked');
+      const fDrawNo = $('#filterDrawingsNotUploaded').is(':checked');
+      const fBomUp = $('#filterBOMUploaded').is(':checked');
+      const fBomNo = $('#filterBOMNotUploaded').is(':checked');
 
       let filtered = allAssemblies.filter((a) => {
         if (a.isSection) return true;
-        const isReleased = (a.drawingFiles || []).length > 0;
-        if (pendingOnly && isReleased) return false;
+
+        const isDwgUp = (a.drawingFiles || []).length > 0;
+        const isBomUp = (a.subtasks || []).length > 0;
+
+        if (fDrawUp && !isDwgUp) return false;
+        if (fDrawNo && isDwgUp) return false;
+        if (fBomUp && !isBomUp) return false;
+        if (fBomNo && isBomUp) return false;
+
+        if (colSr && !String(a.srNo || '').toLowerCase().includes(colSr)) return false;
+        if (colAsm && !String(a.assemblyName || '').toLowerCase().includes(colAsm)) return false;
+        if (colDoc && !String(a.drawingDocNo || '').toLowerCase().includes(colDoc)) return false;
+        if (colRel && !String(a.releaseWeek || '').toLowerCase().includes(colRel)) return false;
+        if (colStat) {
+          let statText = isDwgUp ? 'released' : 'pending';
+          if (!statText.includes(colStat)) return false;
+        }
+
         if (!filter) return true;
-        const hay = [a.projectNo, a.assemblyName, a.drawingDocNo, a.srNo].map(v => String(v || "").toLowerCase()).join(" ");
+        const hay = [a.projectNo, a.assemblyName, a.drawingDocNo, a.srNo, a.section].map(v => String(v || "").toLowerCase()).join(" ");
         return hay.includes(filter);
       });
 
       if (assembliesSortKey) {
-        let sections = filtered.filter(a => a.isSection);
         let items = filtered.filter(a => !a.isSection);
         items.sort((a, b) => {
           let valA = a[assembliesSortKey];
@@ -4395,23 +4518,9 @@
         filtered = items;
       }
 
-      // Update header icons
-      ['srNo', 'assemblyName', 'drawingDocNo', 'releaseWeek', 'drawingCount'].forEach(k => {
-        let th = document.querySelector(`#assembliesHeaderRow th[data-sort-key="${k}"]`);
-        if (th) {
-          let label = th.dataset.label || th.textContent.replace(/[▲▼\s]/g, '');
-          th.dataset.label = label;
-          if (assembliesSortKey === k) {
-            th.innerHTML = `${label} <i class="fa fa-sort-${assembliesSortAsc ? 'up' : 'down'} text-warning ms-1"></i>`;
-          } else {
-            th.innerHTML = `${label} <i class="fa fa-sort text-muted opacity-50 ms-1" style="font-size: 0.75rem;"></i>`;
-          }
-        }
-      });
-
       // Compute Stats
-      const realAssemblies = filtered.filter((a) => !isDividerRow(a));
-      const total = realAssemblies.length;
+      const realAssemblies = filtered.filter((a) => !isDividerRow(a) && (a.srNo && String(a.srNo).includes('.')));
+      const total = realAssemblies.length || filtered.filter(a => !isDividerRow(a)).length;
       const released = realAssemblies.filter((a) => (a.drawingFiles || []).length > 0).length;
 
       document.getElementById("statTotal").textContent = total;
@@ -4419,7 +4528,7 @@
       document.getElementById("statPending").textContent = total - released;
 
       const tbody = document.getElementById("assembliesBody");
-      if (realAssemblies.length === 0) {
+      if (filtered.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">No assemblies found.</td></tr>`;
         return;
       }
@@ -4445,7 +4554,7 @@
           html += rowHtml(a, {
             isParent: !isChild,
             hasChildren: hasChildren,
-            startOpen: filter.length > 0 || true,
+            startOpen: true,
             parentKey: kSafe
           });
         }
