@@ -3008,6 +3008,99 @@
       }
       window.parseLOEWorkbook = parseLOEWorkbook;
 
+      function mergeLoeData(oldLoeData, newLoeData) {
+        if (!oldLoeData || !Array.isArray(oldLoeData) || oldLoeData.length === 0) {
+          return newLoeData || [];
+        }
+        if (!newLoeData || !Array.isArray(newLoeData)) {
+          return oldLoeData || [];
+        }
+
+        let usedOldIndices = new Set();
+
+        return newLoeData.map(newItem => {
+          let matchedOldItem = null;
+          let newDwg = String(newItem.drawingNo || newItem.drawingDocNo || '').trim().toLowerCase();
+          let newSr = String(newItem.srNo || '').trim().toLowerCase();
+          let newName = String(newItem.assemblyName || '').trim().toLowerCase();
+
+          // 1. Match by Drawing/Doc No (if non-empty)
+          if (newDwg) {
+            for (let i = 0; i < oldLoeData.length; i++) {
+              if (usedOldIndices.has(i)) continue;
+              let oldDwg = String(oldLoeData[i].drawingNo || oldLoeData[i].drawingDocNo || '').trim().toLowerCase();
+              if (oldDwg && oldDwg === newDwg) {
+                matchedOldItem = oldLoeData[i];
+                usedOldIndices.add(i);
+                break;
+              }
+            }
+          }
+
+          // 2. Match by SR No & Assembly Name
+          if (!matchedOldItem && newSr && newName) {
+            for (let i = 0; i < oldLoeData.length; i++) {
+              if (usedOldIndices.has(i)) continue;
+              let oldSr = String(oldLoeData[i].srNo || '').trim().toLowerCase();
+              let oldName = String(oldLoeData[i].assemblyName || '').trim().toLowerCase();
+              if (oldSr === newSr && oldName === newName) {
+                matchedOldItem = oldLoeData[i];
+                usedOldIndices.add(i);
+                break;
+              }
+            }
+          }
+
+          // 3. Match by Assembly Name alone
+          if (!matchedOldItem && newName) {
+            for (let i = 0; i < oldLoeData.length; i++) {
+              if (usedOldIndices.has(i)) continue;
+              let oldName = String(oldLoeData[i].assemblyName || '').trim().toLowerCase();
+              if (oldName && oldName === newName) {
+                matchedOldItem = oldLoeData[i];
+                usedOldIndices.add(i);
+                break;
+              }
+            }
+          }
+
+          // 4. Match by SR No alone
+          if (!matchedOldItem && newSr) {
+            for (let i = 0; i < oldLoeData.length; i++) {
+              if (usedOldIndices.has(i)) continue;
+              let oldSr = String(oldLoeData[i].srNo || '').trim().toLowerCase();
+              if (oldSr && oldSr === newSr) {
+                matchedOldItem = oldLoeData[i];
+                usedOldIndices.add(i);
+                break;
+              }
+            }
+          }
+
+          if (matchedOldItem) {
+            return {
+              ...newItem,
+              dispatchWeek: newItem.dispatchWeek || matchedOldItem.dispatchWeek || '',
+              billingValue: newItem.billingValue || matchedOldItem.billingValue || '',
+              releaseWeek: newItem.releaseWeek || matchedOldItem.releaseWeek || '',
+              drawingFiles: (matchedOldItem.drawingFiles && matchedOldItem.drawingFiles.length > 0) 
+                              ? matchedOldItem.drawingFiles 
+                              : (newItem.drawingFiles || []),
+              subtasks: (matchedOldItem.subtasks && matchedOldItem.subtasks.length > 0) 
+                          ? matchedOldItem.subtasks 
+                          : (newItem.subtasks || []),
+              designStatus: (matchedOldItem.designStatus && matchedOldItem.designStatus !== 'Pending') 
+                              ? matchedOldItem.designStatus 
+                              : (newItem.designStatus || 'Pending'),
+              remark: matchedOldItem.remark || newItem.remark || ''
+            };
+          }
+
+          return newItem;
+        });
+      }
+      window.mergeLoeData = mergeLoeData;
+
       var currentEditingLoeProjId = null;
 
       function renderLoeViewerTableRows(loeItems) {
@@ -3186,7 +3279,7 @@
           }
         });
 
-        proj.loeData = updatedLoeData;
+        proj.loeData = mergeLoeData(proj.loeData, updatedLoeData);
         addAutoRemark(proj, getCurrentRoleName(), `Updated LOE equipment list (${updatedLoeData.length} items).`, "LOE Document");
         saveProjects();
         renderTable();
@@ -3222,7 +3315,7 @@
 
             proj.hasLoe = true;
             proj.loeUrl = await fileToDataUrl(file);
-            proj.loeData = newLoeData;
+            proj.loeData = mergeLoeData(proj.loeData, newLoeData);
 
             addAutoRemark(proj, getCurrentRoleName(), `Replaced LOE Excel file with new version (${newLoeData.length} equipment items across all sheets).`, "LOE Document");
             saveProjects();
@@ -3881,7 +3974,7 @@
             if (proj) {
               proj.hasLoe = true;
               proj.loeUrl = await fileToDataUrl(loeFile);
-              proj.loeData = loeData;
+              proj.loeData = mergeLoeData(proj.loeData, loeData);
 
               proj.timeline = proj.timeline || {}; proj.timeline[proj.stage] = new Date().toLocaleDateString();
               proj.stage = 7; // PENDING_PLANNING_COLUMNS
